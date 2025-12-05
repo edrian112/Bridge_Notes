@@ -1,0 +1,18 @@
+# ===================================================
+# 프론트엔드 (Chrome Extension) 전용 .gitignore
+# ===================================================
+
+# 빌드 출력물
+node_modules/
+dist/
+build/
+.cache/
+
+# Chrome Extension 빌드 아티팩트
+*.crx
+*.pem
+web-ext-artifacts/
+
+# 번들러 캐시
+.parcel-cache/
+.webpack/

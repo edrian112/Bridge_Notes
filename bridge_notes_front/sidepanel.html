@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BRIDGE notes</title>
+    <link rel="stylesheet" href="styles/sidepanel.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div id="statusMessage" class="status-message"></div>
+
+      <div class="header">
+        <div class="header-content">
+          <div class="header-text">
+            <h1>BRIDGE notes</h1>
+            <p>AI와의 대화를 두 클릭으로 캡처</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <button id="startCaptureBtn" class="main-button">
+          <span class="icon">🎯</span>
+          <span>범위 선택 시작</span>
+          <div id="usageBox" class="usage-box">
+            <span id="remainingCount">5</span>
+          </div>
+        </button>
+
+        <!-- 결과 영역 (항상 표시) -->
+        <div id="resultArea" class="result-area">
+          <!-- 빈 상태 -->
+          <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-title">아직 캡처된 내용이 없습니다</div>
+            <div class="empty-state-description">
+              위의 "범위 선택 시작" 버튼을 눌러<br />
+              AI 대화 내용을 캡처해보세요
+            </div>
+          </div>
+
+          <!-- 캡처 후 표시되는 콘텐츠 -->
+          <div id="resultContent" style="display: none">
+            <!-- 원문 표시 -->
+            <div class="original-text-section">
+              <div class="section-header">
+                <button
+                  id="copyOriginalBtn"
+                  class="copy-text-btn"
+                  title="원문 복사"
+                >
+                  복사
+                </button>
+              </div>
+              <div id="originalText" class="original-text"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- 템플릿 탭 -->
+            <div class="template-tabs">
+              <button class="tab-button active" data-template="insight">
+                <span class="tab-icon">💡</span>
+                <span>통찰 정리</span>
+              </button>
+              <button class="tab-button" data-template="knowledge">
+                <span class="tab-icon">📚</span>
+                <span>지식 정리</span>
+              </button>
+              <button class="tab-button" data-template="question">
+                <span class="tab-icon">❓</span>
+                <span>질문 추출</span>
+              </button>
+            </div>
+
+            <!-- 어조 선택 (템플릿 탭 바로 아래) -->
+            <div id="toneSelection" class="tone-selection">
+              <div class="tone-buttons">
+                <button class="tone-btn" data-tone="friendly" disabled>
+                  <span class="tone-icon">😊</span>
+                  <span class="tone-name">친근하게</span>
+                </button>
+                <button class="tone-btn" data-tone="formal" disabled>
+                  <span class="tone-icon">🎩</span>
+                  <span class="tone-name">정중하게</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- 결과 편집 영역 -->
+            <div class="result-editor">
+              <!-- 로딩 상태 -->
+              <div
+                id="loadingState"
+                class="loading-state"
+                style="display: none"
+              >
+                <div class="loading-spinner"></div>
+                <div class="loading-text">AI가 내용을 정리하는 중입니다...</div>
+              </div>
+
+              <!-- 결과 텍스트 -->
+              <textarea
+                id="resultText"
+                class="result-textarea"
+                placeholder="AI가 정리한 내용이 여기 표시됩니다..."
+                disabled
+              ></textarea>
+            </div>
+
+            <!-- 액션 버튼 -->
+            <div class="result-actions">
+              <button id="copyResultBtn" class="action-button primary" disabled>
+                <span>📋</span>
+                <span>복사</span>
+              </button>
+              <button id="regenerateBtn" class="action-button secondary">
+                <span>🔄</span>
+                <span>재생성</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오버레이 탭 컨텐츠 -->
+      <div id="tabOverlay" class="tab-overlay">
+        <div class="tab-overlay-content">
+          <!-- 히스토리 탭 -->
+          <div id="historyTab" class="main-tab-pane">
+            <div class="history-section">
+              <div class="history-header">
+                <span class="history-title">📋 히스토리</span>
+                <button
+                  id="clearAllHistoryBtn"
+                  class="clear-all-btn"
+                  title="전체 삭제"
+                >
+                  <span>🗑️</span>
+                  <span>전체삭제</span>
+                </button>
+              </div>
+              <div id="historyList" class="history-list">
+                <div class="history-empty">아직 캡처한 내용이 없습니다</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 과금 탭 -->
+          <div id="pricingTab" class="main-tab-pane">
+            <!-- Pricing 컴포넌트가 여기에 렌더링됩니다 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 네비게이션 (설정 바로 위) -->
+      <div class="main-tabs">
+        <button class="main-tab-btn active" data-tab="main">
+          <img src="icons/icon48.png" alt="BRIDGE notes" class="tab-icon-img" />
+          <span class="tab-label">BRIDGE Notes</span>
+        </button>
+        <button class="main-tab-btn" data-tab="history">
+          <span class="tab-icon">📋</span>
+          <span class="tab-label">히스토리</span>
+        </button>
+        <button class="main-tab-btn" data-tab="pricing">
+          <span class="tab-icon">💎</span>
+          <span class="tab-label">플랜</span>
+        </button>
+      </div>
+
+      <div class="footer">
+        <button id="settingsBtn" class="settings-button">
+          <span>⚙️</span>
+          <span>설정</span>
+        </button>
+        <div class="footer-copyright">© 2025 BRIDGE</div>
+      </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="settings-modal" style="display: none">
+      <div class="settings-modal-overlay"></div>
+      <div class="settings-modal-content">
+        <div class="settings-modal-header">
+          <h2>⚙️ 설정</h2>
+          <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
+        </div>
+
+        <div class="settings-modal-body">
+          <!-- 구글 로그인 (단독) -->
+          <div class="google-login-section">
+            <button id="googleLoginBtn" class="google-login-btn">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.438 15.983 5.482 18 9.003 18z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z"
+                  fill="#EA4335"
+                />
+              </svg>
+              <span>Google로 로그인</span>
+            </button>
+          </div>
+
+          <!-- 기본 설정 -->
+          <div class="settings-section">
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">언어</span>
+              </label>
+              <select id="languageSetting" class="settings-select">
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="en">🇺🇸 English</option>
+              </select>
+            </div>
+
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">사용 플랜</span>
+              </label>
+              <span id="historyPlanInfo" class="plan-info"> Free </span>
+            </div>
+
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">잔여량</span>
+              </label>
+              <span id="remainingUsage" class="plan-info"> 무제한 </span>
+            </div>
+          </div>
+
+          <!-- AI 설정 -->
+          <div class="settings-section">
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">기본 템플릿</span>
+              </label>
+              <select id="defaultTemplateSetting" class="settings-select">
+                <option value="insight" selected>통찰 정리</option>
+                <option value="knowledge">지식 정리</option>
+                <option value="question">질문 추출</option>
+              </select>
+            </div>
+
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">기본 어조</span>
+              </label>
+              <select id="defaultToneSetting" class="settings-select">
+                <option value="friendly" selected>친근하게</option>
+                <option value="formal">정중하게</option>
+              </select>
+            </div>
+
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">복사 대상</span>
+              </label>
+              <select id="copyTargetSetting" class="settings-select">
+                <option value="original" selected>캡처 원문</option>
+                <option value="final">AI 정리</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 테마 설정 -->
+          <div class="settings-section">
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">다크 모드</span>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="darkModeSetting" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 고급 설정 -->
+          <div class="settings-section">
+            <button
+              id="advancedSettingsToggle"
+              class="advanced-settings-toggle"
+            >
+              <div class="advanced-settings-toggle-content">
+                <span>고급 설정</span>
+              </div>
+              <svg
+                class="toggle-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path
+                  d="M4.427 9.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 9H4.604a.25.25 0 00-.177.427z"
+                />
+              </svg>
+            </button>
+
+            <div
+              id="advancedSettingsContent"
+              class="advanced-settings-content"
+              style="display: none"
+            >
+              <!-- Shift+클릭 설정 (카드 밖) -->
+              <div class="settings-item">
+                <label class="settings-label">
+                  <span class="settings-label-text">Shift+클릭</span>
+                </label>
+                <select id="shiftClickModeSetting" class="settings-select">
+                  <option value="div" selected>선택 대화의 처음부터</option>
+                  <option value="text">선택 대화의 글자부터</option>
+                </select>
+              </div>
+
+              <!-- API 설정 카드 -->
+              <div class="api-settings-card">
+                <div class="api-settings-card-header">
+                  <span class="api-settings-card-title">API 추가</span>
+                  <span
+                    class="advanced-settings-badge"
+                    id="advancedSettingsBadge"
+                    >Standard100 이상</span
+                  >
+                </div>
+
+                <div class="settings-item">
+                  <label class="settings-label">
+                    <span class="settings-label-text">입력 AI 주소</span>
+                    <span class="settings-label-desc"
+                      >통찰 정리, 지식 정리, 질문 추출 버튼을 눌렀을 때 연결되는
+                      AI</span
+                    >
+                  </label>
+                  <input
+                    type="url"
+                    id="processApiUrl"
+                    class="settings-input"
+                    placeholder="https://다른-언어모델-주소.com/정리"
+                  />
+                </div>
+
+                <div class="settings-item">
+                  <label class="settings-label">
+                    <span class="settings-label-text">출력 AI 주소</span>
+                    <span class="settings-label-desc"
+                      >친근하게, 정중하게 버튼을 눌렀을 때 연결되는 AI</span
+                    >
+                  </label>
+                  <input
+                    type="url"
+                    id="finalApiUrl"
+                    class="settings-input"
+                    placeholder="https://다른-언어모델-주소.com/말투변경"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 정보 -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">정보</h3>
+
+            <div class="settings-info">
+              <p><strong>BRIDGE notes</strong> v1.0.0</p>
+              <p class="settings-info-desc">
+                AI 대화를 두 클릭으로 캡처하고 정리하는 확장 프로그램
+              </p>
+              <p class="settings-info-supported">
+                <strong>지원 사이트:</strong> Claude.ai, ChatGPT, Perplexity,
+                Google Gemini
+              </p>
+              <p class="settings-info-copyright">Product by BRIDGE</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-modal-footer">
+          <button
+            id="resetSettingsBtn"
+            class="settings-btn settings-btn-secondary"
+          >
+            재설정
+          </button>
+          <button
+            id="saveSettingsBtn"
+            class="settings-btn settings-btn-primary"
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="scripts/sidepanel.js"></script>
+  </body>
+</html>

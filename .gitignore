@@ -1,0 +1,45 @@
+# ===================================================
+# 루트 공통 .gitignore
+# ===================================================
+
+# 운영체제 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 환경 변수 및 비밀 정보
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# 로그 파일
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code 설정 및 메모리
+.claude/
+.serena/
+
+# 문서 및 임시 파일
+claudedocs/
+*.tmp
+*.bak
+*.backup
+

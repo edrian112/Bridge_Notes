@@ -1,0 +1,24 @@
+# ===================================================
+# 백엔드 (n8n/API) 전용 .gitignore
+# ===================================================
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# n8n 관련
+.n8n/
+database.sqlite
+database.sqlite-journal
+*.db
+
+# API 빌드 출력물
+dist/
+build/
+.cache/
+
+# 인증 정보 (중요!)
+credentials.json
+secrets/
+config/*.production.json
