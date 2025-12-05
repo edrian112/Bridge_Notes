@@ -267,32 +267,22 @@ class BRIDGENotesSidePanel {
    */
   async checkCurrentTab(tabId = null, url = null) {
     try {
-      // Window ID를 항상 명시적으로 사용
+      // Window ID 초기화
       if (!this.currentWindowId) {
         const currentWindow = await chrome.windows.getCurrent();
         this.currentWindowId = currentWindow.id;
-        console.log("📌 Window ID initialized:", this.currentWindowId);
       }
 
       let tab;
 
-      // URL이 유효하게 전달된 경우에만 message 사용
+      // URL이 전달된 경우 메시지 사용, 아니면 쿼리
       if (tabId && url !== null && url !== undefined) {
-        console.log("📌 Using tab info from message (URL provided)");
         tab = { id: tabId, url: url };
       } else {
-        // URL이 없거나 null이면 query로 가져오기
-        console.log("📌 URL not provided (null or undefined), querying current tab");
-        if (tabId) {
-          console.log("   Message Tab ID:", tabId, "but URL was:", url);
-        }
-
-        const queryOptions = {
+        const tabs = await ErrorHandler.safeTabQuery({
           active: true,
           windowId: this.currentWindowId,
-        };
-
-        const tabs = await ErrorHandler.safeTabQuery(queryOptions);
+        });
 
         if (!tabs || tabs.length === 0) {
           this.errorHandler.handle(
@@ -305,105 +295,53 @@ class BRIDGENotesSidePanel {
         }
 
         tab = tabs[0];
-        console.log("   Query result - Tab ID:", tab.id, "URL:", tab.url || "(still undefined)");
       }
 
-      console.log("┌─────────────────────────────────");
-      console.log("│ 📋 [탭 정보 확인]");
-      console.log("│  Source:", tabId && url ? "Message" : "Query");
-      console.log("│  Tab ID:", tab.id);
-      console.log("│  Window ID:", tab.windowId || this.currentWindowId);
-      console.log("│  URL:", tab.url);
-      console.log("│  Title:", tab.title?.substring(0, 40) || "N/A");
-
+      // 지원 사이트 확인
       const isSupported = this.supportedSites.some(
         (site) => tab.url && tab.url.includes(site)
       );
 
-      console.log("│");
-      console.log("│ 🔍 [URL 체크]");
-      console.log("│  URL exists:", tab.url ? "✅ YES" : "❌ NO");
-      console.log("│  URL type:", typeof tab.url);
-      console.log("│  URL value:", tab.url || "(empty)");
-      console.log("│  Supported Sites:", this.supportedSites.join(", "));
-      console.log("│  Is Supported:", isSupported ? "✅ YES" : "❌ NO");
-      if (!isSupported && tab.url) {
-        console.log("│  ⚠️ URL does not match any supported site!");
-      }
-
       // Content script 준비 상태 확인 (지원 사이트일 때만)
       let isContentScriptReady = false;
       if (isSupported) {
-        console.log("│");
-        console.log("│ 📡 [Content Script 준비 상태 확인]");
         isContentScriptReady = await this.checkContentScriptReady(tab.id);
-        console.log("│  Content Script Ready:", isContentScriptReady ? "✅ YES" : "❌ NO");
       }
 
-      // 현재 상태 결정 (URL 지원 여부 + Content Script 준비 여부)
+      // 현재 상태 결정
       const newState = isSupported && isContentScriptReady ? "ready" :
                        isSupported && !isContentScriptReady ? "not-ready" :
                        "unsupported";
 
-      // 탭이 변경되었는지 확인
+      // 탭/상태 변경 확인
       const tabChanged = this.lastTabId !== tab.id;
-
-      // 상태 변경 여부 확인
       const stateChanged = this.lastTabState !== newState;
 
-      console.log("│");
-      console.log("│ 🔄 [상태 변경 체크]");
-      console.log("│  Previous Tab ID:", this.lastTabId);
-      console.log("│  Current Tab ID:", tab.id);
-      console.log("│  Tab Changed:", tabChanged ? "✅ YES" : "❌ NO");
-      console.log("│");
-      console.log("│  Previous State:", this.lastTabState);
-      console.log("│  New State:", newState);
-      console.log("│  State Changed:", stateChanged ? "✅ YES" : "❌ NO");
-
-      console.log("│");
-      console.log("│ 💬 [토스트 메시지]");
       // 탭이 변경되고 상태도 변경된 경우에만 토스트 표시
       if (tabChanged && stateChanged) {
         if (newState === "unsupported") {
-          console.log("│  🔴 Showing error toast: 지원되지 않는 사이트");
           this.toast.error(
             "이 사이트는 지원되지 않습니다.\nClaude.ai, ChatGPT, Perplexity, Google Gemini에서 사용해주세요.",
-            0 // 자동 숨김 안함
+            0
           );
         } else if (newState === "not-ready") {
-          console.log("│  ⚠️ Showing warning toast: 페이지 새로고침 필요");
           this.toast.warning(
             "AI 채팅 페이지를 새로고침해주세요.\n(Ctrl+R 또는 Cmd+R)",
-            0 // 자동 숨김 안함
+            0
           );
-        } else {
-          console.log("│  🟢 Silently enabling (ready)");
         }
-      } else {
-        console.log("│  ⚪ No toast (tab or state didn't change)");
       }
 
-      console.log("│");
-      console.log("│ 🎛️ [버튼 상태]");
-      // UI 업데이트 (Content Script가 준비된 경우에만 활성화)
+      // UI 업데이트
       if (newState === "ready") {
-        console.log("│  ✅ Enabling capture button");
         this.enableCaptureButton();
       } else {
-        console.log("│  ❌ Disabling capture button");
         this.disableCaptureButton();
       }
 
       // 상태 저장
       this.lastTabId = tab.id;
       this.lastTabState = newState;
-
-      console.log("│");
-      console.log("│ 💾 [상태 저장 완료]");
-      console.log("│  Saved Tab ID:", this.lastTabId);
-      console.log("│  Saved State:", this.lastTabState);
-      console.log("└─────────────────────────────────");
     } catch (error) {
       this.errorHandler.handle(error, "checkCurrentTab", { silent: true });
       this.disableCaptureButton();
