@@ -5,13 +5,16 @@
   "description": "AI 대화를 두 클릭으로 캡처하고 자동으로 정리",
 
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/Notes_icon16.png",
+    "32": "icons/Notes_icon32.png",
+    "48": "icons/Notes_icon48.png",
+    "64": "icons/Notes_icon64.png",
+    "128": "icons/Notes_icon128.png",
+    "256": "icons/Notes_icon256.png"
   },
 
   "action": {
-    "default_icon": "icons/icon48.png",
+    "default_icon": "icons/Notes_icon48.png",
     "default_title": "Bridge Notes - AI 대화 캡처"
   },
 
