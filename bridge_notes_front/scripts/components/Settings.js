@@ -262,6 +262,11 @@ export class Settings {
       // 테마 적용
       this.applyTheme(newSettings.darkMode);
 
+      // 성공 메시지
+      if (this.toast) {
+        this.toast.success('설정이 저장되었습니다!');
+      }
+
       // 모달 닫기
       this.close();
 
@@ -338,6 +343,11 @@ export class Settings {
 
       // 테마 적용
       this.applyTheme(this.currentSettings.darkMode);
+
+      // 성공 메시지
+      if (this.toast) {
+        this.toast.success('설정이 기본값으로 재설정되었습니다!');
+      }
 
       console.log('Settings reset to default');
     } catch (error) {

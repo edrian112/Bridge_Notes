@@ -145,6 +145,10 @@ export class ResultArea {
       }
 
       await navigator.clipboard.writeText(this.capturedText);
+
+      if (this.toast) {
+        this.toast.success("원문이 클립보드에 복사되었습니다!");
+      }
     } catch (error) {
       console.error("원문 복사 실패:", error);
       if (this.errorHandler) {
@@ -327,6 +331,10 @@ export class ResultArea {
       }
 
       await navigator.clipboard.writeText(textToCopy);
+
+      if (this.toast) {
+        this.toast.success("클립보드에 복사되었습니다!");
+      }
     } catch (error) {
       console.error("클립보드 복사 실패:", error);
       if (this.errorHandler) {

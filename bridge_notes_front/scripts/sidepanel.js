@@ -202,6 +202,7 @@ class BRIDGENotesSidePanel {
 
     // 결과 영역에 캡처된 텍스트 표시
     this.resultArea.show(text);
+    this.toast.success("캡처가 완료되었습니다!");
 
     // 히스토리에 저장
     await this.saveToHistory(text);
@@ -256,6 +257,7 @@ class BRIDGENotesSidePanel {
    */
   loadFromHistory(text) {
     this.resultArea.show(text);
+    this.toast.success("이전 캡처를 불러왔습니다!");
   }
 
   /**
@@ -476,6 +478,8 @@ class BRIDGENotesSidePanel {
         );
         return;
       }
+
+      this.toast.success("범위 선택 모드가 활성화되었습니다!");
     } catch (error) {
       this.errorHandler.handle(error, "startCapture");
     }
