@@ -329,6 +329,18 @@ class BRIDGENotesSidePanel {
             "AI 채팅 페이지를 새로고침해주세요.\n(Ctrl+R 또는 Cmd+R)",
             0
           );
+        } else if (newState === "ready") {
+          // 새로고침 성공 시 이전 토스트 제거
+          this.toast.hide();
+        }
+      }
+
+      // 같은 탭에서 상태만 변경된 경우 (새로고침 후)
+      if (!tabChanged && stateChanged) {
+        if (newState === "ready") {
+          // 새로고침 성공 시 이전 토스트 제거 및 성공 메시지
+          this.toast.hide();
+          this.toast.success("페이지가 준비되었습니다!", 2000);
         }
       }
 
