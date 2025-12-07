@@ -50,6 +50,7 @@
   },
 
   "host_permissions": [
+    "http://*/*",
     "https://*/*"
   ],
 
