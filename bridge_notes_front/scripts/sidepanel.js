@@ -202,7 +202,6 @@ class BRIDGENotesSidePanel {
 
     // 결과 영역에 캡처된 텍스트 표시
     this.resultArea.show(text);
-    this.toast.success("캡처가 완료되었습니다!");
 
     // 히스토리에 저장
     await this.saveToHistory(text);
@@ -257,7 +256,6 @@ class BRIDGENotesSidePanel {
    */
   loadFromHistory(text) {
     this.resultArea.show(text);
-    this.toast.success("이전 캡처를 불러왔습니다!");
   }
 
   /**
@@ -338,9 +336,8 @@ class BRIDGENotesSidePanel {
       // 같은 탭에서 상태만 변경된 경우 (새로고침 후)
       if (!tabChanged && stateChanged) {
         if (newState === "ready") {
-          // 새로고침 성공 시 이전 토스트 제거 및 성공 메시지
+          // 새로고침 성공 시 이전 토스트 제거
           this.toast.hide();
-          this.toast.success("페이지가 준비되었습니다!", 2000);
         }
       }
 
@@ -479,8 +476,6 @@ class BRIDGENotesSidePanel {
         );
         return;
       }
-
-      this.toast.success("범위 선택 모드가 활성화되었습니다!");
     } catch (error) {
       this.errorHandler.handle(error, "startCapture");
     }

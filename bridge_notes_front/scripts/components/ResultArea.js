@@ -145,10 +145,6 @@ export class ResultArea {
       }
 
       await navigator.clipboard.writeText(this.capturedText);
-
-      if (this.toast) {
-        this.toast.success("원문이 클립보드에 복사되었습니다!");
-      }
     } catch (error) {
       console.error("원문 복사 실패:", error);
       if (this.errorHandler) {
@@ -222,10 +218,6 @@ export class ResultArea {
 
       // Step 3: 최종 결과만 표시
       this.showFinalResult();
-
-      if (this.toast) {
-        this.toast.success("AI 정리가 완료되었습니다!");
-      }
     } catch (error) {
       this.hideLoading();
       if (this.errorHandler) {
@@ -335,11 +327,6 @@ export class ResultArea {
       }
 
       await navigator.clipboard.writeText(textToCopy);
-
-      if (this.toast) {
-        const targetText = copyTarget === 'original' ? '캡처 원문이' : 'AI 정리가';
-        this.toast.success(`${targetText} 클립보드에 복사되었습니다!`);
-      }
     } catch (error) {
       console.error("클립보드 복사 실패:", error);
       if (this.errorHandler) {
