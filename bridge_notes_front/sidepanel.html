@@ -341,32 +341,33 @@
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">입력 AI 주소</span>
+                    <span class="settings-label-text">n8n Webhook URL (Phase 2)</span>
                     <span class="settings-label-desc"
-                      >통찰 정리, 지식 정리 버튼을 눌렀을 때 연결되는
-                      AI</span
+                      >AI 자동 정리 기능을 위한 n8n Webhook 주소를 입력하세요.
+                      비워두면 Mock 데이터로 작동합니다.</span
                     >
                   </label>
                   <input
                     type="url"
                     id="processApiUrl"
                     class="settings-input"
-                    placeholder="https://다른-언어모델-주소.com/정리"
+                    placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/..."
                   />
                 </div>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">출력 AI 주소</span>
+                    <span class="settings-label-text">대체 AI URL (선택사항)</span>
                     <span class="settings-label-desc"
-                      >친근하게, 정중하게 버튼을 눌렀을 때 연결되는 AI</span
+                      >향후 확장용 - 다른 AI 모델을 사용하려면 여기에 입력</span
                     >
                   </label>
                   <input
                     type="url"
                     id="finalApiUrl"
                     class="settings-input"
-                    placeholder="https://다른-언어모델-주소.com/말투변경"
+                    placeholder="https://다른-AI-서비스.com/api"
+                    disabled
                   />
                 </div>
               </div>

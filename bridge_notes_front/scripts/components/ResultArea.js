@@ -3,7 +3,7 @@
  * 모든 UI를 항상 표시하고 disabled 속성으로 제어
  */
 export class ResultArea {
-  constructor(toast = null, errorHandler = null, settings = null) {
+  constructor(toast = null, errorHandler = null, settings = null, apiService = null) {
     // 기존 요소들
     this.resultArea = document.getElementById("resultArea");
     this.emptyState = document.getElementById("emptyState");
@@ -23,6 +23,7 @@ export class ResultArea {
     this.toast = toast;
     this.errorHandler = errorHandler;
     this.settings = settings;
+    this.apiService = apiService; // Phase 2: API Service for n8n integration
 
     // 워크플로우 상태
     this.currentStep = 0; // 0: empty, 1: text+template, 2: result+tone, 3: final
@@ -31,6 +32,9 @@ export class ResultArea {
     this.processedText = "";
     this.selectedTone = "";
     this.finalText = "";
+
+    // Phase 2: Mock 모드 (Webhook URL 미설정 시 true)
+    this.useMockData = true;
 
     this.init();
   }
@@ -194,11 +198,26 @@ export class ResultArea {
     // 로딩 표시
     this.showLoading("AI가 내용을 정리하고 있습니다...");
 
+    // Mock 모드 체크
+    this.useMockData = !this.apiService || !this.apiService.isConfigured();
+
     try {
-      // Step 1: 템플릿 적용 (processedText는 내부적으로만 사용, 화면에 표시 안 함)
-      await this.delay(1500);
-      const mockResult = this.getMockProcessedText(this.selectedTemplate);
-      this.processedText = mockResult;
+      // Step 1: 템플릿 적용 (대화 정리)
+      if (this.useMockData) {
+        // Mock Data 사용
+        console.log("[Mock Mode] Using mock data for summarization");
+        await this.delay(1500);
+        this.processedText = this.getMockProcessedText(this.selectedTemplate);
+      } else {
+        // Real API 호출
+        console.log("[API Mode] Calling n8n webhook for summarization");
+        const result = await this.apiService.process({
+          text: this.capturedText,
+          action: "summarize",
+          template: this.selectedTemplate,
+        });
+        this.processedText = result.result;
+      }
 
       // Step 2: 어조 적용 (processedText를 기반으로 finalText 생성)
       // 이미 선택된 톤이 있으면 그것을 사용, 없으면 기본 톤 (설정값 또는 friendly) 사용
@@ -208,7 +227,7 @@ export class ResultArea {
       }
 
       // 어조 버튼 UI 업데이트
-      this.toneButtons.forEach(btn => {
+      this.toneButtons.forEach((btn) => {
         if (btn.getAttribute("data-tone") === this.selectedTone) {
           btn.classList.add("selected");
         } else {
@@ -216,16 +235,36 @@ export class ResultArea {
         }
       });
 
-      await this.delay(1500);
-      const mockFinal = this.getMockFinalText(this.selectedTone);
-      this.finalText = mockFinal;
+      if (this.useMockData) {
+        // Mock Data 사용
+        console.log("[Mock Mode] Using mock data for tone adjustment");
+        await this.delay(1500);
+        this.finalText = this.getMockFinalText(this.selectedTone);
+      } else {
+        // Real API 호출
+        console.log("[API Mode] Calling n8n webhook for tone adjustment");
+        const result = await this.apiService.process({
+          text: this.processedText,
+          action: "tone-adjust",
+          tone: this.selectedTone,
+        });
+        this.finalText = result.result;
+      }
 
       // Step 3: 최종 결과만 표시
       this.showFinalResult();
     } catch (error) {
       this.hideLoading();
+
+      // API 에러 발생 시 원본은 여전히 사용 가능
+      if (this.toast) {
+        this.toast.warning("AI 처리에 실패했지만 원본은 사용 가능합니다");
+      }
+
       if (this.errorHandler) {
-        this.errorHandler.handle(error, "processWithAI");
+        this.errorHandler.handle(error, "processWithAI", {
+          customMessage: "AI 자동 정리 실패",
+        });
       }
     }
   }

@@ -6,7 +6,7 @@
 import { ErrorHandler } from './ErrorHandler.js';
 
 export class Settings {
-  constructor(toast = null, errorHandler = null, onThemeChange = null) {
+  constructor(toast = null, errorHandler = null, onThemeChange = null, apiService = null) {
     this.settingsModal = document.getElementById('settingsModal');
     this.settingsBtn = document.getElementById('settingsBtn');
     this.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -26,12 +26,13 @@ export class Settings {
     this.advancedSettingsContent = document.getElementById('advancedSettingsContent');
     this.advancedSettingsBadge = document.getElementById('advancedSettingsBadge');
     this.shiftClickModeSetting = document.getElementById('shiftClickModeSetting');
-    this.processApiUrl = document.getElementById('processApiUrl');
-    this.finalApiUrl = document.getElementById('finalApiUrl');
+    this.processApiUrl = document.getElementById('processApiUrl'); // Phase 2: n8n Webhook URL
+    this.finalApiUrl = document.getElementById('finalApiUrl'); // 향후 확장용 (선택적)
 
     this.toast = toast;
     this.errorHandler = errorHandler;
     this.onThemeChange = onThemeChange; // 테마 변경 콜백
+    this.apiService = apiService; // Phase 2: API Service for webhook management
 
     // 기본 설정값
     this.defaultSettings = {
@@ -46,8 +47,8 @@ export class Settings {
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
       googleUser: null, // 구글 사용자 정보
-      processApiUrl: '', // 템플릿 처리용 API URL
-      finalApiUrl: '' // 어조 적용용 API URL
+      processApiUrl: '', // Phase 2: n8n Webhook URL (summarize + tone-adjust 모두 처리)
+      finalApiUrl: '' // 향후 확장용 (다른 AI 모델 URL)
     };
 
     this.currentSettings = { ...this.defaultSettings };
@@ -258,6 +259,19 @@ export class Settings {
 
       // 현재 설정 업데이트
       this.currentSettings = newSettings;
+
+      // Phase 2: Webhook URL을 APIService에 저장
+      if (this.apiService && newSettings.processApiUrl) {
+        try {
+          await this.apiService.setWebhookUrl(newSettings.processApiUrl);
+          console.log("Webhook URL updated in APIService");
+        } catch (error) {
+          console.error("Failed to update webhook URL:", error);
+          if (this.toast) {
+            this.toast.warning("설정은 저장되었으나 Webhook URL 형식을 확인해주세요");
+          }
+        }
+      }
 
       // 테마 적용
       this.applyTheme(newSettings.darkMode);

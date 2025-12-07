@@ -10,6 +10,7 @@ import { ErrorHandler } from "./components/ErrorHandler.js";
 import { Settings } from "./components/Settings.js";
 import { TabNavigation } from "./components/TabNavigation.js";
 import { Pricing } from "./components/Pricing.js";
+import { APIService } from "./services/APIService.js";
 
 class BRIDGENotesSidePanel {
   constructor() {
@@ -19,17 +20,23 @@ class BRIDGENotesSidePanel {
     // 컴포넌트 인스턴스
     this.toast = new ToastMessage();
     this.errorHandler = new ErrorHandler(this.toast);
+
+    // Phase 2: API Service
+    this.apiService = new APIService();
+
     this.settings = new Settings(
       this.toast,
       this.errorHandler,
       (isDarkMode) => {
         console.log("Theme changed:", isDarkMode);
-      }
+      },
+      this.apiService // Phase 2: Settings에 apiService 전달
     );
     this.resultArea = new ResultArea(
       this.toast,
       this.errorHandler,
-      this.settings
+      this.settings,
+      this.apiService // Phase 2: ResultArea에 apiService 전달
     );
 
     // 탭 네비게이션 (History보다 먼저 생성)
@@ -63,6 +70,9 @@ class BRIDGENotesSidePanel {
   }
 
   async init() {
+    // Phase 2: API Service 초기화
+    await this.apiService.init();
+
     // 이벤트 리스너 등록
     this.startCaptureBtn?.addEventListener("click", () => this.startCapture());
     // 설정 버튼은 Settings 컴포넌트에서 자체적으로 처리
