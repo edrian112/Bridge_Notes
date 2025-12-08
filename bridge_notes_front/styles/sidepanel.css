@@ -1614,6 +1614,7 @@ body.dark-mode .action-btn-primary:hover {
 
 /* 푸터 */
 body.dark-mode .footer {
+  background: #1a1a1a;
   border-top-color: #374151;
 }
 
