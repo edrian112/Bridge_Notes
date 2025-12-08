@@ -26,9 +26,8 @@ export class Settings {
     this.advancedSettingsContent = document.getElementById('advancedSettingsContent');
     this.advancedSettingsBadge = document.getElementById('advancedSettingsBadge');
     this.shiftClickModeSetting = document.getElementById('shiftClickModeSetting');
-    // Phase 2: 향후 Standard100+ 플랜용 (사용자 API 키 입력 - HTML에 disabled로 존재)
-    this.claudeApiKey = document.getElementById('claudeApiKey');
-    this.openaiApiKey = document.getElementById('openaiApiKey');
+    this.processApiUrl = document.getElementById('processApiUrl'); // 사용자 입력: 입력 AI 주소
+    this.finalApiUrl = document.getElementById('finalApiUrl'); // 사용자 입력: 출력 AI 주소
 
     this.toast = toast;
     this.errorHandler = errorHandler;
@@ -48,9 +47,9 @@ export class Settings {
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
       googleUser: null, // 구글 사용자 정보
-      processApiUrl: 'http://161.118.209.89:5678/webhook/bridge-notes', // Phase 2: 우리가 운영하는 n8n Webhook (하드코딩)
-      claudeApiKey: '', // Standard100+ 플랜: 사용자 Claude API 키
-      openaiApiKey: ''  // Standard100+ 플랜: 사용자 OpenAI API 키
+      webhookUrl: 'http://161.118.209.89:5678/webhook/bridge-notes', // Phase 2: 우리가 운영하는 n8n Webhook (하드코딩)
+      processApiUrl: '', // Standard100+ 플랜: 사용자 입력 AI 주소 (입력 처리용)
+      finalApiUrl: '' // Standard100+ 플랜: 사용자 출력 AI 주소 (어조 조정용)
     };
 
     this.currentSettings = { ...this.defaultSettings };
@@ -145,9 +144,13 @@ export class Settings {
     // 고급 설정
     this.shiftClickModeSetting.value = this.currentSettings.shiftClickMode;
 
-    // Phase 2: 향후 사용자 API 키 (현재는 disabled, Standard100+ 플랜용)
-    // this.claudeApiKey.value = this.currentSettings.claudeApiKey || '';
-    // this.openaiApiKey.value = this.currentSettings.openaiApiKey || '';
+    // Phase 2: 사용자 API 주소 (Standard100+ 플랜용)
+    if (this.processApiUrl) {
+      this.processApiUrl.value = this.currentSettings.processApiUrl || '';
+    }
+    if (this.finalApiUrl) {
+      this.finalApiUrl.value = this.currentSettings.finalApiUrl || '';
+    }
 
     // 구글 로그인 버튼 상태 업데이트
     this.updateGoogleLoginButton();
@@ -232,9 +235,9 @@ export class Settings {
       planType: this.currentSettings.planType,
       remainingUsage: this.currentSettings.remainingUsage,
       googleUser: this.currentSettings.googleUser,
-      processApiUrl: this.currentSettings.processApiUrl, // 하드코딩된 URL 유지
-      claudeApiKey: this.currentSettings.claudeApiKey, // 향후 사용
-      openaiApiKey: this.currentSettings.openaiApiKey  // 향후 사용
+      webhookUrl: this.currentSettings.webhookUrl, // 하드코딩된 n8n Webhook URL
+      processApiUrl: this.processApiUrl?.value.trim() || '', // 사용자 입력 AI 주소
+      finalApiUrl: this.finalApiUrl?.value.trim() || '' // 사용자 출력 AI 주소
     };
   }
 
@@ -263,16 +266,13 @@ export class Settings {
       // 현재 설정 업데이트
       this.currentSettings = newSettings;
 
-      // Phase 2: Webhook URL을 APIService에 저장
-      if (this.apiService && newSettings.processApiUrl) {
+      // Phase 2: Webhook URL을 APIService에 저장 (하드코딩된 값)
+      if (this.apiService && newSettings.webhookUrl) {
         try {
-          await this.apiService.setWebhookUrl(newSettings.processApiUrl);
+          await this.apiService.setWebhookUrl(newSettings.webhookUrl);
           console.log("Webhook URL updated in APIService");
         } catch (error) {
           console.error("Failed to update webhook URL:", error);
-          if (this.toast) {
-            this.toast.warning("설정은 저장되었으나 Webhook URL 형식을 확인해주세요");
-          }
         }
       }
 
