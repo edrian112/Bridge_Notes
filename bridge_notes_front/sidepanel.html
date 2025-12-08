@@ -10,25 +10,30 @@
     <div class="container">
       <div id="statusMessage" class="status-message"></div>
 
-      <div class="header">
-        <div class="header-content">
-          <div class="header-text">
-            <h1>BRIDGE notes</h1>
-            <p>AI와의 대화를 두 클릭으로 캡처</p>
+      <!-- 고정 영역: 헤더 + 버튼 -->
+      <div class="fixed-top">
+        <div class="header">
+          <div class="header-content">
+            <div class="header-text">
+              <h1>BRIDGE notes</h1>
+              <p>AI와의 대화를 두 클릭으로 캡처</p>
+            </div>
           </div>
+        </div>
+
+        <div class="button-area">
+          <button id="startCaptureBtn" class="main-button">
+            <span class="icon">🎯</span>
+            <span>범위 선택 시작</span>
+            <div id="usageBox" class="usage-box">
+              <span id="remainingCount">5</span>
+            </div>
+          </button>
         </div>
       </div>
 
-      <div class="main-content">
-        <button id="startCaptureBtn" class="main-button">
-          <span class="icon">🎯</span>
-          <span>범위 선택 시작</span>
-          <div id="usageBox" class="usage-box">
-            <span id="remainingCount">5</span>
-          </div>
-        </button>
-
-        <!-- 결과 영역 (항상 표시) -->
+      <!-- 스크롤 가능 영역: 결과 -->
+      <div class="scrollable-content">
         <div id="resultArea" class="result-area">
           <!-- 빈 상태 -->
           <div id="emptyState" class="empty-state">
@@ -120,6 +125,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- 오버레이 탭 컨텐츠 -->

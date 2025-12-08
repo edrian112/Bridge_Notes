@@ -57,6 +57,28 @@ body {
   opacity: 0.9;
 }
 
+/* 고정 영역: 헤더 + 버튼 */
+.fixed-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff;
+}
+
+.button-area {
+  padding: 20px 20px 10px 20px;
+  background: #ffffff;
+}
+
+/* 스크롤 가능 영역 */
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 20px 20px 20px;
+  background: #ffffff;
+}
+
+/* 구형 main-content (더 이상 사용 안 함) */
 .main-content {
   flex: 1;
   overflow-y: auto;
@@ -1400,6 +1422,19 @@ body.dark-mode .container {
 }
 
 body.dark-mode .main-content {
+  background: #1a1a1a;
+}
+
+/* 고정 영역 */
+body.dark-mode .fixed-top {
+  background: #1a1a1a;
+}
+
+body.dark-mode .button-area {
+  background: #1a1a1a;
+}
+
+body.dark-mode .scrollable-content {
   background: #1a1a1a;
 }
 
