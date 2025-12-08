@@ -26,8 +26,9 @@ export class Settings {
     this.advancedSettingsContent = document.getElementById('advancedSettingsContent');
     this.advancedSettingsBadge = document.getElementById('advancedSettingsBadge');
     this.shiftClickModeSetting = document.getElementById('shiftClickModeSetting');
-    this.processApiUrl = document.getElementById('processApiUrl'); // Phase 2: n8n Webhook URL
-    this.finalApiUrl = document.getElementById('finalApiUrl'); // 향후 확장용 (선택적)
+    // Phase 2: 향후 Standard100+ 플랜용 (사용자 API 키 입력 - HTML에 disabled로 존재)
+    this.claudeApiKey = document.getElementById('claudeApiKey');
+    this.openaiApiKey = document.getElementById('openaiApiKey');
 
     this.toast = toast;
     this.errorHandler = errorHandler;
@@ -47,8 +48,9 @@ export class Settings {
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
       googleUser: null, // 구글 사용자 정보
-      processApiUrl: '', // Phase 2: n8n Webhook URL (summarize + tone-adjust 모두 처리)
-      finalApiUrl: '' // 향후 확장용 (다른 AI 모델 URL)
+      processApiUrl: 'http://161.118.209.89:5678/webhook/bridge-notes', // Phase 2: 우리가 운영하는 n8n Webhook (하드코딩)
+      claudeApiKey: '', // Standard100+ 플랜: 사용자 Claude API 키
+      openaiApiKey: ''  // Standard100+ 플랜: 사용자 OpenAI API 키
     };
 
     this.currentSettings = { ...this.defaultSettings };
@@ -143,9 +145,9 @@ export class Settings {
     // 고급 설정
     this.shiftClickModeSetting.value = this.currentSettings.shiftClickMode;
 
-    // 고급 설정 API URLs
-    this.processApiUrl.value = this.currentSettings.processApiUrl || '';
-    this.finalApiUrl.value = this.currentSettings.finalApiUrl || '';
+    // Phase 2: 향후 사용자 API 키 (현재는 disabled, Standard100+ 플랜용)
+    // this.claudeApiKey.value = this.currentSettings.claudeApiKey || '';
+    // this.openaiApiKey.value = this.currentSettings.openaiApiKey || '';
 
     // 구글 로그인 버튼 상태 업데이트
     this.updateGoogleLoginButton();
@@ -230,8 +232,9 @@ export class Settings {
       planType: this.currentSettings.planType,
       remainingUsage: this.currentSettings.remainingUsage,
       googleUser: this.currentSettings.googleUser,
-      processApiUrl: this.processApiUrl.value.trim(),
-      finalApiUrl: this.finalApiUrl.value.trim()
+      processApiUrl: this.currentSettings.processApiUrl, // 하드코딩된 URL 유지
+      claudeApiKey: this.currentSettings.claudeApiKey, // 향후 사용
+      openaiApiKey: this.currentSettings.openaiApiKey  // 향후 사용
     };
   }
 
