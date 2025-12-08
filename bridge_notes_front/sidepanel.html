@@ -290,6 +290,26 @@
             </div>
           </div>
 
+          <!-- Phase 2: AI 자동 정리 설정 (모든 플랜) -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">AI 자동 정리 (Phase 2)</h3>
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">n8n Webhook URL</span>
+                <span class="settings-label-desc"
+                  >AI 자동 정리 기능을 위한 n8n Webhook 주소를 입력하세요.
+                  비워두면 Mock 데이터로 작동합니다.</span
+                >
+              </label>
+              <input
+                type="url"
+                id="processApiUrl"
+                class="settings-input"
+                placeholder="http://your-server-ip:5678/webhook/bridge-notes"
+              />
+            </div>
+          </div>
+
           <!-- 고급 설정 -->
           <div class="settings-section">
             <button
@@ -328,10 +348,10 @@
                 </select>
               </div>
 
-              <!-- API 설정 카드 -->
+              <!-- API 설정 카드 (향후 사용자 API 키 입력용) -->
               <div class="api-settings-card">
                 <div class="api-settings-card-header">
-                  <span class="api-settings-card-title">API 추가</span>
+                  <span class="api-settings-card-title">사용자 API 키</span>
                   <span
                     class="advanced-settings-badge"
                     id="advancedSettingsBadge"
@@ -341,32 +361,32 @@
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">n8n Webhook URL (Phase 2)</span>
+                    <span class="settings-label-text">Claude API Key (선택사항)</span>
                     <span class="settings-label-desc"
-                      >AI 자동 정리 기능을 위한 n8n Webhook 주소를 입력하세요.
-                      비워두면 Mock 데이터로 작동합니다.</span
+                      >본인의 Claude API 키를 입력하면 우리 API 대신 사용됩니다.</span
                     >
                   </label>
                   <input
-                    type="url"
-                    id="processApiUrl"
+                    type="password"
+                    id="claudeApiKey"
                     class="settings-input"
-                    placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/..."
+                    placeholder="sk-ant-..."
+                    disabled
                   />
                 </div>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">대체 AI URL (선택사항)</span>
+                    <span class="settings-label-text">OpenAI API Key (선택사항)</span>
                     <span class="settings-label-desc"
-                      >향후 확장용 - 다른 AI 모델을 사용하려면 여기에 입력</span
+                      >본인의 OpenAI API 키를 입력하면 우리 API 대신 사용됩니다.</span
                     >
                   </label>
                   <input
-                    type="url"
-                    id="finalApiUrl"
+                    type="password"
+                    id="openaiApiKey"
                     class="settings-input"
-                    placeholder="https://다른-AI-서비스.com/api"
+                    placeholder="sk-..."
                     disabled
                   />
                 </div>
