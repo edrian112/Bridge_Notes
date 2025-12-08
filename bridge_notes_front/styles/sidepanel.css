@@ -1241,7 +1241,7 @@ input:focus + .toggle-slider {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1250,6 +1250,16 @@ input:focus + .toggle-slider {
   font-size: 14px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.api-settings-description {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #10b981;
 }
 
 .api-settings-card .settings-item {
@@ -1309,6 +1319,12 @@ input:focus + .toggle-slider {
 
 .dark-mode .api-settings-card-title {
   color: #f3f4f6;
+}
+
+.dark-mode .api-settings-description {
+  color: #9ca3af;
+  background: #1f2937;
+  border-left-color: #10b981;
 }
 
 .dark-mode .api-settings-card .settings-item {

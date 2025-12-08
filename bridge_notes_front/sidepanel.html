@@ -155,7 +155,11 @@
       <!-- 탭 네비게이션 (설정 바로 위) -->
       <div class="main-tabs">
         <button class="main-tab-btn active" data-tab="main">
-          <img src="icons/BRIDGE_icon64.png" alt="BRIDGE notes" class="tab-icon-img" />
+          <img
+            src="icons/BRIDGE_icon64.png"
+            alt="BRIDGE notes"
+            class="tab-icon-img"
+          />
           <span class="tab-label">BRIDGE Notes</span>
         </button>
         <button class="main-tab-btn" data-tab="history">
@@ -331,42 +335,48 @@
               <!-- API 설정 카드 -->
               <div class="api-settings-card">
                 <div class="api-settings-card-header">
-                  <span class="api-settings-card-title">API 추가</span>
+                  <span class="api-settings-card-title">사용자 API 키</span>
                   <span
                     class="advanced-settings-badge"
                     id="advancedSettingsBadge"
                     >Standard100 이상</span
                   >
                 </div>
+                <p class="api-settings-description">
+                  API 키는 서버에 AES-256-GCM으로 암호화되어 안전하게 저장됩니다.
+                </p>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">입력 AI 주소</span>
+                    <span class="settings-label-text"
+                      >입력 AI 모델 API 키</span
+                    >
                     <span class="settings-label-desc"
-                      >통찰 정리, 지식 정리 버튼을 눌렀을 때 연결되는
-                      AI</span
+                      >통찰 정리, 지식 정리 버튼을 눌렀을 때 연결되는 AI</span
                     >
                   </label>
                   <input
-                    type="url"
+                    type="password"
                     id="processApiUrl"
                     class="settings-input"
-                    placeholder="https://다른-언어모델-주소.com/정리"
+                    placeholder="sk-ant-... 또는 sk-..."
                   />
                 </div>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text">출력 AI 주소</span>
+                    <span class="settings-label-text"
+                      >출력 AI 모델 API 키</span
+                    >
                     <span class="settings-label-desc"
                       >친근하게, 정중하게 버튼을 눌렀을 때 연결되는 AI</span
                     >
                   </label>
                   <input
-                    type="url"
+                    type="password"
                     id="finalApiUrl"
                     class="settings-input"
-                    placeholder="https://다른-언어모델-주소.com/말투변경"
+                    placeholder="sk-ant-... 또는 sk-..."
                   />
                 </div>
               </div>
