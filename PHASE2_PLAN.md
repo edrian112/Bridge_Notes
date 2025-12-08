@@ -1,282 +1,511 @@
-# Bridge Notes - Phase 2 구현 계획
+# Bridge Notes - Phase 2 구현 계획 (4단계 AI 파이프라인 + 2개 분기점)
 
-**시작일:** 2024-12-07
-**목표:** AI 자동 정리 기능 구현 (n8n + API 연동)
-**예상 기간:** 5일
+**시작일:** 2024-12-08
+**목표:** AI 자동 정리 기능 구현 (n8n + 3개 AI API 연동)
+**예상 기간:** 3-4일
+**파이프라인 구조:** 4단계 + 2개 분기점 (템플릿, 어조)
 
 ---
 
 ## 📋 목차
 
 1. [Phase 2 개요](#phase-2-개요)
-2. [아키텍처 설계](#아키텍처-설계)
-3. [구현 순서](#구현-순서)
+2. [4단계 파이프라인 아키텍처](#4단계-파이프라인-아키텍처)
+3. [프롬프트 파일 구조](#프롬프트-파일-구조)
 4. [n8n 워크플로우 설계](#n8n-워크플로우-설계)
 5. [확장 프로그램 수정사항](#확장-프로그램-수정사항)
-6. [API 연동 세부사항](#api-연동-세부사항)
-7. [에러 처리 전략](#에러-처리-전략)
-8. [테스트 계획](#테스트-계획)
-9. [배포 체크리스트](#배포-체크리스트)
+6. [구현 순서](#구현-순서)
+7. [테스트 계획](#테스트-계획)
+8. [배포 체크리스트](#배포-체크리스트)
 
 ---
 
 ## Phase 2 개요
 
 ### 목표
-캡처한 AI 대화를 자동으로 정리하고 어투를 조정하여 사용자가 바로 사용할 수 있는 게시글 초안 생성
 
-### 핵심 기능
-1. **자동 대화 정리** (Claude API)
-   - 통찰/지식 추출
-   - 불필요한 대화 맥락 제거
-   - 읽기 쉬운 구조로 재구성
+캡처한 AI 대화를 **4단계 AI 파이프라인 (2개 분기점)**으로 자동 처리하여 브릿지 노트 결과물로 변환
 
-2. **어투 조정** (ChatGPT API)
-   - 친근한 어투 (informal)
-   - 정중한 어투 (formal)
+### 핵심 철학
 
-3. **템플릿 시스템**
-   - 통찰 정리
-   - 지식 정리
-   - 질문 추출
+**"오늘의 삽질이 내일의 브릿지가 되는"** - 개인의 깨달음을 공공의 대화로 확장
+
+### 4단계 파이프라인 구조
+
+**구조:** 4단계 + 2개 분기점 (템플릿, 어조)
+**실행 프롬프트:** 매 실행마다 4개 AI 호출 (1 → 2a or 2b → 3a → 4a or 4b)
+
+```
+대화 캡처 (Extension)
+    ↓
+1️⃣ Perplexity API - 깊이 있는 분석
+   프롬프트: 1-perplexity-analyze.md
+   대화 맥락 분석 및 핵심 포인트 파악
+    ↓
+    ┌─────────────────────────── 분기점 1: template ───────────────────────────┐
+    ↓                                                                          ↓
+2️⃣a Claude - 통찰 추출                                    2️⃣b Claude - 지식 추출
+   프롬프트: 2a-claude-insight-extract.md                 프롬프트: 2b-claude-knowledge-extract.md
+   개인 경험 중심 정리                                       개념/구조 중심 정리
+    ↓                                                                          ↓
+    └──────────────────────────────────────────────────────────────────────────┘
+                                        ↓
+3️⃣a Claude - 언어화
+   프롬프트: 3a-claude-note-languagify-v2.md
+   개인 기록 스타일로 자연스럽게 표현
+                                        ↓
+    ┌─────────────────────────── 분기점 2: tone ──────────────────────────────┐
+    ↓                                                                          ↓
+4️⃣a GPT - 친근 어조 (개인화)                           4️⃣b GPT - 정중 어조 (전문화)
+   프롬프트: 4a-gpt-friendly-tone-v2.md                  프롬프트: 4b-gpt-formal-tone-v3.md
+   캐주얼한 구어체                                          정중한 문어체
+   일상 대화 스타일                                         전문적인 표현
+    ↓                                                                          ↓
+    └──────────────────────────────────────────────────────────────────────────┘
+                                        ↓
+                              최종 결과물 → Extension 표시
+```
 
 ### 사용자 흐름
+
 ```
-사용자 캡처 완료
+사용자: "범위 선택 시작" 버튼 클릭
     ↓
-원본 텍스트 표시 (즉시)
+Extension: 대화 드래그 선택
     ↓
-[백그라운드] n8n Webhook 호출
-    ↓ (3-5초)
-AI 정리 결과 자동 반영
+Extension: 대화 캡처 완료 → 원본 텍스트 즉시 표시
     ↓
-사용자 편집 가능
+사용자: 템플릿 선택 (통찰 정리 / 지식 정리)
     ↓
-복사 또는 재생성
+사용자: 어조 선택 (개인화 / 전문화)
+    ↓
+사용자: "재생성" 버튼 클릭 ★
+    ↓
+[백그라운드] n8n Webhook 호출 (4단계 파이프라인 실행)
+    ↓ (10-15초)
+Extension: AI 정리 결과 표시
+    ↓
+사용자: [옵션 1] 클립보드 복사
+        [옵션 2] 템플릿/어조 변경 후 "재생성" 버튼 다시 클릭
 ```
+
+**중요:**
+- 템플릿 버튼 (통찰 정리 / 지식 정리): 선택만 함, API 호출 안 함
+- 어조 버튼 (개인화 / 전문화): 선택만 함, API 호출 안 함
+- "재생성" 버튼: 클릭 시에만 선택한 옵션으로 n8n 파이프라인 실행
 
 ---
 
-## 아키텍처 설계
+## 4단계 파이프라인 아키텍처
 
 ### 시스템 구성도
 
 ```
-┌─────────────────────────────────────────────┐
-│         Chrome Extension (Frontend)          │
-│                                              │
-│  [Content Script] ──► [ResultArea]          │
-│         │                   │                │
-│         │                   ├─► [원본 표시]  │
-│         │                   │                │
-│         │                   ├─► [AI 처리 중] │
-│         │                   │                │
-│         │                   └─► [결과 표시]  │
-│         │                                    │
-│         └──────► [API Service] ──────┐       │
-│                      │                │       │
-└──────────────────────┼────────────────┼───────┘
+┌───────────────────────────────────────────────────┐
+│           Chrome Extension (Frontend)             │
+│                                                    │
+│  [Content Script] ──► [Side Panel]                │
+│         │                   │                      │
+│         │                   ├─► [원본 표시]        │
+│         │                   │    (즉시)            │
+│         │                   │                      │
+│         │                   ├─► [AI 처리 중...]    │
+│         │                   │    (10-15초)         │
+│         │                   │                      │
+│         │                   └─► [결과 표시]        │
+│         │                        - 통찰 정리       │
+│         │                        - 지식 정리       │
+│         │                        - 어조: 개인화/전문화│
+│         │                                          │
+│         └──────► [API Service] ──────┐            │
+│                      │                │            │
+└──────────────────────┼────────────────┼────────────┘
                        │ HTTPS          │
                        ↓                │
-              ┌────────────────┐        │
-              │  n8n Workflow   │        │
-              │   (Backend)     │        │
-              │                 │        │
-              │  1. Webhook     │◄───────┘
-              │  2. Router      │
-              │  3. Claude API  │
-              │  4. ChatGPT API │
-              │  5. Response    │
-              └────────────────┘
+              ┌─────────────────────┐  │
+              │   n8n Workflow       │  │
+              │  (Oracle Cloud)      │  │
+              │                      │  │
+              │  1. Webhook          │◄─┘
+              │  2. Perplexity API   │
+              │  3. Claude API (2,3) │
+              │  4. Claude API (4,5) │
+              │  5. GPT API (6,7)    │
+              │  6. Response Format  │
+              │  7. Return           │
+              └─────────────────────┘
 ```
 
 ### 데이터 흐름
 
-**요청 (Request):**
+**요청 (Extension → n8n):**
+
 ```json
 {
-  "text": "캡처된 대화 내용",
-  "action": "summarize" | "tone-adjust",
-  "template": "insight" | "knowledge" | "question",
+  "text": "캡처된 대화 내용 (원문)",
+  "template": "insight" | "knowledge",
   "tone": "friendly" | "formal"
 }
 ```
 
-**응답 (Response):**
+**응답 (n8n → Extension):**
+
 ```json
 {
   "success": true,
-  "result": "정리된 텍스트",
+  "pipeline": {
+    "step1_analysis": "Perplexity 분석 결과 (JSON)",
+    "step2_extract": "Claude 추출 결과 (JSON)",
+    "step3_languagify": "Claude 언어화 결과 (JSON)",
+    "step4_final": "GPT 어조 조정 최종 결과 (string)"
+  },
+  "result": "최종 텍스트 (사용자에게 표시될 내용)",
   "metadata": {
-    "processingTime": 3.2,
-    "wordsCount": 280,
-    "model": "claude-3-5-sonnet-20241022"
+    "processingTime": 12.5,
+    "wordsCount": 1200,
+    "models": ["perplexity-sonar", "claude-3-5-sonnet", "gpt-4o-mini"]
   }
 }
 ```
 
 **에러 응답:**
+
 ```json
 {
   "success": false,
-  "error": "rate_limit" | "network" | "api_error",
+  "error": "rate_limit" | "network" | "api_error" | "timeout",
   "message": "사용자에게 표시할 메시지",
-  "retryAfter": 60
+  "failedStep": "step2_extract",
+  "retryable": true
 }
 ```
 
 ---
 
-## 구현 순서
+## 프롬프트 파일 구조
 
-### Week 1: n8n 워크플로우 (3일)
+### 프롬프트 파일 목록
 
-#### Day 1: n8n 기본 설정 및 Webhook
-- [ ] n8n.cloud 계정 생성
-- [ ] 첫 워크플로우 생성
-- [ ] Webhook 노드 추가 및 테스트
-- [ ] Postman으로 요청/응답 검증
+모든 프롬프트는 별도 저장소에서 관리 (Git에서 제외, private)
 
-#### Day 2: Claude API 연동
-- [ ] Claude API 키 발급 (Anthropic Console)
-- [ ] HTTP Request 노드로 Claude API 호출
-- [ ] 대화 정리 프롬프트 작성 및 테스트
-- [ ] 템플릿별 프롬프트 분기 로직
+```
+prompts/
+├── 1-perplexity-analyze.md           # 1단계: Perplexity 분석
+├── 2a-claude-insight-extract.md      # 2단계 분기: Claude 통찰 추출
+├── 2b-claude-knowledge-extract.md    # 2단계 분기: Claude 지식 추출
+├── 3a-claude-note-languagify-v2.md   # 3단계: Claude 언어화
+├── 4a-gpt-friendly-tone-v2.md        # 4단계 분기: GPT 친근 어조 (개인화)
+└── 4b-gpt-formal-tone-v3.md          # 4단계 분기: GPT 정중 어조 (전문화)
+```
 
-#### Day 3: ChatGPT API 연동 및 최적화
-- [ ] OpenAI API 키 발급
-- [ ] 어투 조정 프롬프트 작성
-- [ ] 조건 분기 (action별 라우팅)
-- [ ] 에러 처리 및 재시도 로직
-- [ ] 응답 포맷 표준화
+**파이프라인 구조:**
+- 4단계 + 2개 분기점 (template, tone)
+- 매 실행마다 4개 프롬프트 실행: 1 → (2a or 2b) → 3a → (4a or 4b)
 
-### Week 2: 확장 프로그램 업데이트 (2일)
+**Phase 2에서 사용하는 프롬프트:** 1, 2a, 2b, 3a, 4a, 4b (6개 파일)
 
-#### Day 4: API Service 및 UI
-- [ ] API Service 클래스 생성 (scripts/services/APIService.js)
-- [ ] ResultArea에 Webhook 호출 로직 추가
-- [ ] 로딩 상태 UI 개선
-- [ ] 에러 처리 및 재시도 UI
-- [ ] AI 정리 결과 표시 탭 구현
+### 프롬프트 파일 사용 방법
 
-#### Day 5: Settings 및 통합 테스트
-- [ ] Settings에 API 선택 옵션 추가
-- [ ] n8n Webhook URL 설정 저장
-- [ ] 전체 플로우 통합 테스트
-- [ ] 에러 시나리오 테스트
-- [ ] 성능 최적화 (캐싱, 타임아웃)
+**n8n 워크플로우에서 하드코딩:**
+
+1. 각 프롬프트 파일 내용을 복사
+2. n8n HTTP Request 노드의 Body에 직접 붙여넣기
+3. 변수 치환: `{{conversation_text}}` → n8n 변수 `{{$json.text}}`
+
+**장점:**
+- Git에 프롬프트 노출 안 됨
+- n8n에서 직접 수정 가능
+- 버전 관리 용이
 
 ---
 
 ## n8n 워크플로우 설계
 
-### 노드 구성
+### 워크플로우 개요
+
+**워크플로우 이름:** `Bridge Notes - 4-Step AI Pipeline (2 Branches)`
+
+**Webhook URL:** `${N8N_WEBHOOK_URL}` (환경 변수로 관리)
+
+### 노드 구성 (상세)
 
 ```
+┌─────────────────────────────────────────────────────────┐
+│                    n8n Workflow                          │
+├─────────────────────────────────────────────────────────┤
+
 1. [Webhook] - POST 요청 수신
-    ↓
-2. [Function] - 요청 데이터 파싱 및 검증
-    ↓
-3. [Switch] - action 분기
-    ├─ "summarize" → 4. Claude API
-    └─ "tone-adjust" → 5. ChatGPT API
-    ↓
-6. [Function] - 응답 포맷팅
-    ↓
-7. [Respond to Webhook] - 결과 반환
+   - Method: POST
+   - Path: /bridge-notes
+   - Response Mode: When Last Node Finishes
+   - Body: JSON
+      ↓
+
+2. [Function: 요청 검증]
+   - text 필드 확인
+   - template, outputType, tone 기본값 설정
+   - 입력 데이터 정규화
+      ↓
+
+3. [HTTP Request: Perplexity API] - 1단계
+   - URL: https://api.perplexity.ai/chat/completions
+   - Method: POST
+   - Body:
+     {
+       "model": "sonar",
+       "messages": [{
+         "role": "user",
+         "content": "[1-perplexity-analyze.md 프롬프트] + {{$json.text}}"
+       }]
+     }
+   - Output: step1_analysis
+      ↓
+
+4. [Switch: 템플릿 분기] - 2단계 분기점
+   - IF template === "insight" → 5A
+   - IF template === "knowledge" → 5B
+      ↓
+
+5A. [HTTP Request: Claude Insight Extract] - 2단계-A
+    - 프롬프트: 2a-claude-insight-extract.md
+    - Input: {{$node["3"].json.choices[0].message.content}}
+    - Output: step2_insight
+       ↓
+    [Merge]
+       ↓
+
+5B. [HTTP Request: Claude Knowledge Extract] - 2단계-B
+    - 프롬프트: 2b-claude-knowledge-extract.md
+    - Input: {{$node["3"].json.choices[0].message.content}}
+    - Output: step2_knowledge
+       ↓
+    [Merge]
+       ↓
+
+6. [HTTP Request: Claude Note Languagify] - 3단계
+    - 프롬프트: 3a-claude-note-languagify-v2.md
+    - Input: {{$node["5"].json}}
+    - Output: step3_note (JSON)
+       ↓
+
+7. [Function: JSON 파싱]
+   - Claude 응답에서 JSON 추출
+   - note_article 필드 추출
+      ↓
+
+8. [Switch: 어조 분기] - 4단계 분기점
+   - IF tone === "friendly" → 9A
+   - IF tone === "formal" → 9B
+      ↓
+
+9A. [HTTP Request: GPT Friendly Tone] - 4단계-A
+     - 프롬프트: 4a-gpt-friendly-tone-v2.md
+     - Input: {{$node["7"].json.article}}
+     - Output: step4_friendly
+        ↓
+     [Merge]
+        ↓
+
+9B. [HTTP Request: GPT Formal Tone] - 4단계-B
+     - 프롬프트: 4b-gpt-formal-tone-v3.md
+     - Input: {{$node["7"].json.article}}
+     - Output: step4_formal
+        ↓
+     [Merge]
+        ↓
+
+10. [Function: 최종 응답 포맷팅]
+    - 모든 단계 결과 수집
+    - 응답 JSON 생성
+    - 메타데이터 추가
+       ↓
+
+11. [Respond to Webhook]
+    - Status: 200
+    - Body: {{$json}}
+       ↓
+    [완료]
+
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Claude API 프롬프트
+### API 설정 상세
 
-#### 템플릿 1: 통찰 정리 (insight)
-```
-당신은 AI 대화에서 핵심 통찰을 추출하는 전문가입니다.
+#### Perplexity API
 
-다음 대화에서 얻은 핵심 통찰을 명확하고 간결하게 정리해주세요.
-
-요구사항:
-- 대화 맥락 제거, 핵심 아이디어만 추출
-- 읽기 쉬운 구조 (제목 + 본문)
-- 280자 기준 3-5개 트윗 스레드 형태
-- 불필요한 인사말이나 부가 설명 제거
-
-대화 내용:
-{{$json.text}}
-
-출력 형식:
-💡 [핵심 통찰 제목]
-
-[간결한 본문 1-2문장]
-
-[필요시 예시나 부연 설명]
-```
-
-#### 템플릿 2: 지식 정리 (knowledge)
-```
-당신은 AI 대화에서 배운 지식을 체계적으로 정리하는 전문가입니다.
-
-다음 대화에서 배운 내용을 명확하고 재사용 가능한 형태로 정리해주세요.
-
-요구사항:
-- 핵심 개념과 설명 구분
-- 단계별/목록 형식 활용
-- 실용적인 정보 우선
-- 280자 기준 3-5개 트윗 스레드 형태
-
-대화 내용:
-{{$json.text}}
-
-출력 형식:
-📚 [학습 주제]
-
-✅ [핵심 개념 1]
-- [설명 또는 예시]
-
-✅ [핵심 개념 2]
-- [설명 또는 예시]
+```javascript
+// HTTP Request Node 설정
+{
+  "method": "POST",
+  "url": "https://api.perplexity.ai/chat/completions",
+  "authentication": "headerAuth",
+  "headerAuth": {
+    "name": "Authorization",
+    "value": "Bearer {{$credentials.perplexityApi}}"
+  },
+  "body": {
+    "model": "sonar",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{$node[\"Function: Load Prompt 1\"].json.prompt}}\n\n{{$json.text}}"
+      }
+    ],
+    "max_tokens": 2000,
+    "temperature": 0.7
+  }
+}
 ```
 
-#### 템플릿 3: 질문 추출 (question)
+#### Claude API
+
+```javascript
+// HTTP Request Node 설정
+{
+  "method": "POST",
+  "url": "https://api.anthropic.com/v1/messages",
+  "authentication": "headerAuth",
+  "headerAuth": {
+    "name": "x-api-key",
+    "value": "{{$credentials.claudeApi}}",
+    "anthropic-version": "2023-06-01"
+  },
+  "body": {
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 2000,
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{$node[\"Function: Load Prompt\"].json.prompt}}\n\n{{$json.analysis}}"
+      }
+    ],
+    "temperature": 0.7
+  }
+}
 ```
-당신은 AI 대화에서 중요한 질문과 답변을 추출하는 전문가입니다.
 
-다음 대화에서 가치있는 질문과 간결한 답변을 정리해주세요.
+#### OpenAI (ChatGPT) API
 
-요구사항:
-- Q&A 형식으로 구조화
-- 질문은 명확하고 구체적으로
-- 답변은 핵심만 간결하게
-- 280자 기준 3-5개 트윗 스레드 형태
-
-대화 내용:
-{{$json.text}}
-
-출력 형식:
-❓ [질문 1]
-
-✅ [간결한 답변]
-
-❓ [질문 2]
-
-✅ [간결한 답변]
+```javascript
+// HTTP Request Node 설정
+{
+  "method": "POST",
+  "url": "https://api.openai.com/v1/chat/completions",
+  "authentication": "headerAuth",
+  "headerAuth": {
+    "name": "Authorization",
+    "value": "Bearer {{$credentials.openaiApi}}"
+  },
+  "body": {
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{$node[\"Function: Load Prompt\"].json.prompt}}\n\n{{$json.article}}"
+      }
+    ],
+    "max_tokens": 1500,
+    "temperature": 0.5
+  }
+}
 ```
 
-### ChatGPT API 프롬프트 (어투 조정)
+### Function 노드 예시
 
+#### Function: 요청 검증
+
+```javascript
+// 입력 데이터 검증 및 기본값 설정
+const input = $input.item.json;
+
+// 필수 필드 확인
+if (!input.text || input.text.trim() === '') {
+  throw new Error('text 필드가 비어있습니다');
+}
+
+// 기본값 설정
+const validated = {
+  text: input.text.trim(),
+  template: input.template || 'insight', // insight | knowledge
+  tone: input.tone || 'friendly' // friendly | formal
+};
+
+return {
+  json: validated
+};
 ```
-다음 텍스트의 어투를 {{$json.tone}}로 자연스럽게 변환해주세요.
 
-어투 스타일:
-- friendly: 친근하고 일상적인 말투 ("~해요", "~이에요", "~네요")
-- formal: 정중하고 격식있는 말투 ("~합니다", "~입니다", "~됩니다")
+#### Function: JSON 파싱
 
-중요:
-- 의미와 구조는 그대로 유지
-- 이모지와 포맷은 보존
-- 자연스러운 한국어 표현 사용
+```javascript
+// Claude 응답에서 JSON 추출
+const claudeResponse = $input.item.json.content[0].text;
 
-원본 텍스트:
-{{$json.text}}
+// JSON 블록 추출 (```json ... ```)
+const jsonMatch = claudeResponse.match(/```json\n([\s\S]*?)\n```/);
+
+if (!jsonMatch) {
+  // JSON 블록이 없으면 전체 응답을 JSON으로 파싱 시도
+  try {
+    const parsed = JSON.parse(claudeResponse);
+    return { json: parsed };
+  } catch (e) {
+    throw new Error('Claude 응답을 JSON으로 파싱할 수 없습니다');
+  }
+}
+
+const parsed = JSON.parse(jsonMatch[1]);
+
+// note_article 추출
+const article = parsed.note_article;
+
+if (!article) {
+  throw new Error('note_article 필드가 없습니다');
+}
+
+return {
+  json: {
+    article: article,
+    title: parsed.note_title,
+    summary: parsed.note_summary,
+    fullData: parsed
+  }
+};
+```
+
+#### Function: 최종 응답 포맷팅
+
+```javascript
+// 모든 단계 결과 수집
+const startTime = new Date($node["Webhook"].json.executionStartedAt);
+const endTime = new Date();
+const processingTime = (endTime - startTime) / 1000; // 초 단위
+
+const finalText = $input.item.json.choices[0].message.content;
+
+const response = {
+  success: true,
+  pipeline: {
+    step1_analysis: $node["HTTP Request: Perplexity"].json.choices[0].message.content,
+    step2_extract: $node["HTTP Request: Claude Extract"].json.content[0].text,
+    step3_languagify: $node["Function: JSON Parse"].json.fullData,
+    step4_final: finalText
+  },
+  result: finalText,
+  metadata: {
+    processingTime: Math.round(processingTime * 10) / 10,
+    wordsCount: finalText.length,
+    models: [
+      "perplexity-sonar",
+      "claude-3-5-sonnet-20241022",
+      "gpt-4o-mini"
+    ],
+    template: $node["Function: Validate"].json.template,
+    tone: $node["Function: Validate"].json.tone
+  }
+};
+
+return { json: response };
 ```
 
 ---
@@ -290,46 +519,31 @@ AI 정리 결과 자동 반영
 ```javascript
 /**
  * API Service - n8n Webhook 통신 담당
+ * 4단계 AI 파이프라인 (2개 분기점) 호출
  */
 export class APIService {
   constructor() {
-    this.webhookUrl = null;
-    this.timeout = 30000; // 30초
-    this.maxRetries = 3;
-  }
-
-  async init() {
-    // Chrome Storage에서 Webhook URL 불러오기
-    const result = await chrome.storage.sync.get(['webhookUrl']);
-    this.webhookUrl = result.webhookUrl || null;
-  }
-
-  async setWebhookUrl(url) {
-    this.webhookUrl = url;
-    await chrome.storage.sync.set({ webhookUrl: url });
+    // 환경 변수 또는 설정에서 로드
+    this.webhookUrl = process.env.N8N_WEBHOOK_URL || settings.webhookUrl;
+    this.timeout = 60000; // 60초 (4단계 파이프라인 고려)
+    this.maxRetries = 2;
   }
 
   /**
-   * AI 처리 요청
+   * 4단계 AI 파이프라인 실행 (2개 분기점)
    * @param {Object} options
-   * @param {string} options.text - 캡처된 텍스트
-   * @param {string} options.action - "summarize" | "tone-adjust"
-   * @param {string} options.template - "insight" | "knowledge" | "question"
-   * @param {string} options.tone - "friendly" | "formal"
+   * @param {string} options.text - 캡처된 대화 원문
+   * @param {string} options.template - "insight" | "knowledge" (2단계 분기)
+   * @param {string} options.tone - "friendly" | "formal" (4단계 분기)
    */
-  async process({ text, action, template = 'insight', tone = 'friendly' }) {
-    if (!this.webhookUrl) {
-      throw new Error('Webhook URL이 설정되지 않았습니다');
-    }
-
+  async processFullPipeline({ text, template, tone }) {
     const requestBody = {
       text,
-      action,
-      template,
-      tone
+      template: template || 'insight',
+      tone: tone || 'friendly'
     };
 
-    // 재시도 로직 포함
+    // 재시도 로직
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -347,9 +561,8 @@ export class APIService {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          // 서버 에러 (5xx)면 재시도
           if (response.status >= 500 && attempt < this.maxRetries) {
-            await this.delay(1000 * attempt); // 지수 백오프
+            await this.delay(2000 * attempt);
             continue;
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -364,47 +577,30 @@ export class APIService {
         return {
           success: true,
           result: data.result,
+          pipeline: data.pipeline,
           metadata: data.metadata
         };
 
       } catch (error) {
         if (error.name === 'AbortError') {
           if (attempt < this.maxRetries) {
-            await this.delay(1000 * attempt);
+            await this.delay(2000 * attempt);
             continue;
           }
-          throw new Error('요청 시간 초과 (30초)');
+          throw new Error('요청 시간 초과 (60초)');
         }
 
         if (attempt === this.maxRetries) {
           throw error;
         }
 
-        // 네트워크 에러면 재시도
-        await this.delay(1000 * attempt);
+        await this.delay(2000 * attempt);
       }
     }
   }
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Health check - n8n 서버 상태 확인
-   */
-  async healthCheck() {
-    if (!this.webhookUrl) return false;
-
-    try {
-      const response = await fetch(this.webhookUrl + '/health', {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000)
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
   }
 }
 ```
@@ -413,53 +609,71 @@ export class APIService {
 
 **파일:** `bridge_notes_front/scripts/components/ResultArea.js`
 
-**수정할 메서드:**
+**주요 변경사항:**
 
-1. **show() 메서드** - 캡처 완료 시 자동으로 AI 처리 시작
+1. **템플릿 탭 구조 유지**
+   - "통찰 정리" / "지식 정리" 탭 유지
+   - 탭 클릭 시 선택만 함 (API 호출 안 함)
+
+2. **어조 버튼 구조 유지**
+   - "개인화" / "전문화" 버튼
+   - 버튼 클릭 시 선택만 함 (API 호출 안 함)
+
+3. **"재생성" 버튼 추가**
+   - 사용자가 템플릿/어조 선택 후 "재생성" 버튼 클릭
+   - 버튼 클릭 시에만 n8n 파이프라인 실행
+
+4. **show() 메서드 수정**
+
 ```javascript
 async show(capturedText, source = 'capture') {
-  // 기존 로직: 원본 텍스트 표시
+  // 원본 표시
   this.originalText = capturedText;
   this.originalTextarea.value = capturedText;
 
-  // 탭 활성화 및 표시
+  // 탭 활성화
   this.activateTab('original');
   this.resultContainer.classList.remove('hidden');
 
-  // ✨ NEW: 백그라운드에서 AI 처리 시작
-  this.processWithAI();
+  // ★ 변경: 자동 AI 처리 제거, 사용자가 "재생성" 버튼 클릭 시에만 실행
 }
 ```
 
-2. **processWithAI() 메서드** - 실제 API 호출 구현
+5. **onRegenerateButtonClick() 메서드 구현 (신규)**
+
+```javascript
+async onRegenerateButtonClick() {
+  // 현재 선택된 템플릿과 어조로 AI 처리 시작
+  await this.processWithAI();
+}
+```
+
+6. **processWithAI() 메서드 구현**
+
 ```javascript
 async processWithAI() {
   try {
-    this.showLoading('AI가 대화를 정리하는 중...');
+    // 로딩 표시
+    this.showLoading('AI가 대화를 분석하고 정리하는 중... (10-15초)');
 
-    // 현재 선택된 템플릿 가져오기
-    const template = this.getCurrentTemplate(); // 'insight' | 'knowledge' | 'question'
+    // 현재 선택된 템플릿과 어조 가져오기
+    const template = this.currentTemplate || 'insight'; // 'insight' | 'knowledge'
+    const tone = this.currentTone || 'friendly'; // 'friendly' | 'formal'
 
-    // API 호출
-    const result = await this.apiService.process({
+    // 4단계 파이프라인 실행
+    const result = await this.apiService.processFullPipeline({
       text: this.originalText,
-      action: 'summarize',
       template: template,
-      tone: 'friendly' // 기본값
+      tone: tone
     });
 
     // 결과 저장 및 표시
     this.processedText = result.result;
     this.processedTextarea.value = result.result;
+    this.processingMetadata = result.metadata;
 
     // 로딩 숨김
     this.hideLoading();
-
-    // 성공 메시지
-    this.toast.success('AI 정리 완료! ✨');
-
-    // '원본' → 'AI 정리' 탭으로 자동 전환 (선택적)
-    // this.activateTab('processed');
 
   } catch (error) {
     this.hideLoading();
@@ -471,64 +685,31 @@ async processWithAI() {
 }
 ```
 
-3. **regenerate() 메서드** - 재생성 기능
+7. **템플릿 탭 클릭 - 선택만 함**
+
 ```javascript
-async regenerate() {
-  const template = this.getCurrentTemplate();
+onTemplateTabClick(template) {
+  this.currentTemplate = template; // 'insight' | 'knowledge'
 
-  try {
-    this.showLoading('다시 생성하는 중...');
+  // 탭 UI 업데이트
+  this.updateTemplateTabUI(template);
 
-    const result = await this.apiService.process({
-      text: this.originalText,
-      action: 'summarize',
-      template: template,
-      tone: this.currentTone || 'friendly'
-    });
-
-    this.processedText = result.result;
-    this.processedTextarea.value = result.result;
-    this.hideLoading();
-
-    this.toast.success('재생성 완료!');
-
-  } catch (error) {
-    this.hideLoading();
-    this.errorHandler.handle(error, 'AI 재생성');
-  }
+  // ★ 변경: API 호출 안 함, 선택만 함
+  // 사용자가 "재생성" 버튼을 클릭할 때 processWithAI() 실행
 }
 ```
 
-4. **selectTone() 메서드** - 어투 조정
+8. **어조 버튼 클릭 - 선택만 함**
+
 ```javascript
-async selectTone(tone) {
+onToneButtonClick(tone) {
   this.currentTone = tone; // 'friendly' | 'formal'
 
   // 버튼 상태 업데이트
   this.updateToneButtons(tone);
 
-  try {
-    this.showLoading(`${tone === 'friendly' ? '친근한' : '정중한'} 어투로 변환 중...`);
-
-    const result = await this.apiService.process({
-      text: this.processedText, // AI 정리된 텍스트 기준
-      action: 'tone-adjust',
-      tone: tone
-    });
-
-    this.finalText = result.result;
-    this.finalTextarea.value = result.result;
-    this.hideLoading();
-
-    // 'AI 정리' → '최종본' 탭으로 전환
-    this.activateTab('final');
-
-    this.toast.success(`${tone === 'friendly' ? '친근한' : '정중한'} 어투로 변환 완료!`);
-
-  } catch (error) {
-    this.hideLoading();
-    this.errorHandler.handle(error, '어투 조정');
-  }
+  // ★ 변경: API 호출 안 함, 선택만 함
+  // 사용자가 "재생성" 버튼을 클릭할 때 processWithAI() 실행
 }
 ```
 
@@ -536,176 +717,197 @@ async selectTone(tone) {
 
 **파일:** `bridge_notes_front/scripts/components/Settings.js`
 
-**추가할 UI:**
+**변경사항:**
+- Webhook URL 입력 필드 제거 (하드코딩)
+- 사용자 API 키 입력 필드는 유지 (Standard100+ 플랜용, 향후 기능)
+
+**HTML (sidepanel.html):**
+
+고급 설정의 API 입력 필드는 그대로 유지하지만, 현재는 사용하지 않음.
 
 ```html
-<!-- Webhook URL 설정 -->
-<div class="setting-group">
-  <label for="webhookUrl">n8n Webhook URL</label>
-  <input
-    type="url"
-    id="webhookUrl"
-    class="setting-input"
-    placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/..."
-  />
-  <p class="setting-description">
-    n8n 워크플로우의 Webhook URL을 입력하세요
+<!-- 고급 설정: 사용자 API 키 (Standard100+ 전용) -->
+<div class="settings-card">
+  <div class="settings-card-title">🔑 사용자 API 키 (향후 기능)</div>
+  <p class="api-settings-description">
+    🔒 API 키는 서버에 AES-256-GCM으로 암호화되어 안전하게 저장됩니다.
   </p>
+
+  <div class="setting-group">
+    <label for="processApiUrl">입력 AI 모델 API 키</label>
+    <input
+      type="password"
+      id="processApiUrl"
+      class="settings-input"
+      placeholder="sk-ant-... 또는 sk-..."
+      disabled
+    />
+    <p class="setting-description">Standard100+ 플랜에서 사용 가능</p>
+  </div>
+
+  <div class="setting-group">
+    <label for="finalApiUrl">출력 AI 모델 API 키</label>
+    <input
+      type="password"
+      id="finalApiUrl"
+      class="settings-input"
+      placeholder="sk-ant-... 또는 sk-..."
+      disabled
+    />
+    <p class="setting-description">Standard100+ 플랜에서 사용 가능</p>
+  </div>
 </div>
-
-<!-- API 선택 (Phase 2.1 - 선택적) -->
-<div class="setting-group">
-  <label>AI 모델 선택</label>
-  <select id="aiModel" class="setting-select">
-    <option value="claude">Claude (기본)</option>
-    <option value="chatgpt">ChatGPT</option>
-    <option value="perplexity">Perplexity</option>
-    <option value="gemini">Gemini</option>
-  </select>
-</div>
-```
-
-**JavaScript 추가:**
-
-```javascript
-async saveWebhookUrl() {
-  const url = document.getElementById('webhookUrl').value;
-
-  if (!url) {
-    this.toast.error('Webhook URL을 입력하세요');
-    return;
-  }
-
-  // URL 형식 검증
-  try {
-    new URL(url);
-  } catch {
-    this.toast.error('올바른 URL 형식이 아닙니다');
-    return;
-  }
-
-  // APIService에 저장
-  await this.apiService.setWebhookUrl(url);
-
-  this.toast.success('Webhook URL 저장 완료');
-}
 ```
 
 ---
 
-## API 연동 세부사항
+## 구현 순서
 
-### Claude API
-- **모델:** `claude-3-5-sonnet-20241022`
-- **Max Tokens:** 1000 (충분한 길이)
-- **Temperature:** 0.7 (창의적이면서 일관성 유지)
-- **예상 비용:** $0.003/1K tokens (input) + $0.015/1K tokens (output)
+### Day 1: n8n 워크플로우 구축 (6-8시간)
 
-### ChatGPT API
-- **모델:** `gpt-4o-mini` (비용 효율적)
-- **Max Tokens:** 500 (어투 조정은 짧음)
-- **Temperature:** 0.5 (일관성 우선)
-- **예상 비용:** $0.150/1M input tokens + $0.600/1M output tokens
+#### 오전 (3-4시간)
 
-### 비용 예측
-- **월 100회 사용** (평균 500자 입력/출력)
-  - Claude: $0.50
-  - ChatGPT: $0.15
-  - **총:** ~$0.65/월
+- [ ] n8n 접속 확인 (Oracle Cloud)
+- [ ] 새 워크플로우 생성: "Bridge Notes - 4-Step AI Pipeline (2 Branches)"
+- [ ] Webhook 노드 추가 및 URL 확인
+- [ ] Function: 요청 검증 노드 추가
+- [ ] Postman으로 Webhook 테스트 (mock 데이터)
 
----
+#### 오후 (3-4시간)
 
-## 에러 처리 전략
+- [ ] Perplexity API Credential 추가
+- [ ] HTTP Request: Perplexity API 노드 구성
+- [ ] 1-perplexity-analyze.md 프롬프트 복사/붙여넣기
+- [ ] 변수 치환 (`{{conversation_text}}` → `{{$json.text}}`)
+- [ ] Postman으로 Perplexity 단계 테스트
 
-### 1. 네트워크 에러
-```javascript
-{
-  type: 'NetworkError',
-  message: '네트워크 연결을 확인하세요',
-  retry: true,
-  fallback: 'use_original'
-}
-```
+### Day 2: Claude & GPT API 연동 (6-8시간)
 
-### 2. API Rate Limit
-```javascript
-{
-  type: 'RateLimitError',
-  message: '잠시 후 다시 시도해주세요 (60초)',
-  retry: false,
-  retryAfter: 60
-}
-```
+#### 오전 (3-4시간)
 
-### 3. Timeout
-```javascript
-{
-  type: 'TimeoutError',
-  message: '요청 시간 초과 (30초). 다시 시도하시겠습니까?',
-  retry: true,
-  fallback: 'use_original'
-}
-```
+- [ ] Claude API Credential 추가
+- [ ] HTTP Request: Claude Insight Extract 노드 (프롬프트 2a)
+- [ ] HTTP Request: Claude Knowledge Extract 노드 (프롬프트 2b)
+- [ ] Switch 노드로 템플릿 분기 구현 (2단계 분기점)
+- [ ] HTTP Request: Claude Note Languagify 노드 (프롬프트 3a)
 
-### 4. Invalid Response
-```javascript
-{
-  type: 'InvalidResponseError',
-  message: 'AI 응답 형식이 올바르지 않습니다',
-  retry: true,
-  fallback: 'use_original'
-}
-```
+#### 오후 (3-4시간)
+
+- [ ] OpenAI API Credential 추가
+- [ ] HTTP Request: GPT Friendly Tone 노드 (프롬프트 4a)
+- [ ] HTTP Request: GPT Formal Tone 노드 (프롬프트 4b)
+- [ ] Switch 노드로 어조 분기 구현 (4단계 분기점)
+- [ ] Function: JSON 파싱 노드
+- [ ] Function: 최종 응답 포맷팅 노드
+- [ ] Respond to Webhook 노드
+- [ ] 전체 워크플로우 통합 테스트
+
+### Day 3: Extension 수정 및 통합 테스트 (6-8시간)
+
+#### 오전 (3-4시간)
+
+- [ ] APIService.js 생성 및 구현
+- [ ] ResultArea.js에 APIService 연동
+- [ ] show() 메서드 수정 (자동 AI 처리)
+- [ ] processWithAI() 메서드 구현
+- [ ] 로딩 상태 UI 개선
+
+#### 오후 (3-4시간)
+
+- [ ] 템플릿 탭 전환 로직 구현
+- [ ] 어조 버튼 클릭 로직 구현
+- [ ] 에러 처리 및 재시도 UI
+- [ ] 전체 플로우 통합 테스트
+- [ ] Claude.ai / ChatGPT에서 실제 캡처 테스트
+
+### Day 4: 최적화 및 배포 준비 (선택적)
+
+- [ ] 성능 최적화 (타임아웃, 재시도 로직)
+- [ ] 에러 시나리오 전체 테스트
+- [ ] UI/UX 개선 (로딩 메시지, 진행 상황 표시)
+- [ ] 문서화 업데이트
+- [ ] 버전 업데이트 (manifest.json: v1.1.0)
 
 ---
 
 ## 테스트 계획
 
-### 1. n8n 워크플로우 테스트
+### 1. n8n 워크플로우 단위 테스트
 
 **Postman 테스트 케이스:**
 
 ```bash
-# Test 1: 통찰 정리 (insight)
-POST {{webhook_url}}
+### Test 1: 통찰 정리 + 노트 + 친근
+POST ${N8N_WEBHOOK_URL}
 Content-Type: application/json
 
 {
-  "text": "사용자: TypeScript를 배우려는데 어디서부터 시작하면 좋을까요?\n\nClaude: TypeScript는 JavaScript의 상위 집합이므로, 먼저 JavaScript 기초를 다지는 것이 중요합니다...",
-  "action": "summarize",
-  "template": "insight"
+  "text": "사용자: TypeScript 배우려고 하는데 어디서부터 시작하면 좋을까요?\n\nClaude: TypeScript는 JavaScript의 상위 집합이므로, 먼저 JavaScript 기초를 다지는 것이 중요합니다. 이미 JavaScript를 다룰 수 있다면, TypeScript의 타입 시스템부터 시작하세요...",
+  "template": "insight",
+  "outputType": "note",
+  "tone": "friendly"
 }
 
-# 예상 응답:
+### 예상 응답 시간: 10-15초
+### 예상 응답:
 {
   "success": true,
-  "result": "💡 TypeScript 학습 시작 가이드\n\nJavaScript 기초부터 시작하는 것이 핵심...",
+  "result": "어어, 그런데 말이야. TypeScript 배우려고 하는데 처음엔 막막하더라고...",
   "metadata": {
-    "processingTime": 3.2,
-    "wordsCount": 280,
-    "model": "claude-3-5-sonnet-20241022"
+    "processingTime": 12.3,
+    "wordsCount": 1200,
+    "models": ["perplexity-sonar", "claude-3-5-sonnet-20241022", "gpt-4o-mini"]
   }
 }
 ```
 
-### 2. 확장 프로그램 통합 테스트
+```bash
+### Test 2: 지식 정리 + 페이지 + 정중
+POST ${N8N_WEBHOOK_URL}
+Content-Type: application/json
 
-**시나리오 1: 정상 플로우**
-1. Claude.ai에서 대화 캡처
-2. 원본 텍스트 즉시 표시 확인
-3. 3-5초 후 AI 정리 결과 자동 표시 확인
-4. '원본' / 'AI 정리' 탭 전환 확인
-5. 클립보드 복사 확인
+{
+  "text": "사용자: API Rate Limit 처리는 어떻게 하는게 좋을까요?\n\nClaude: Rate Limit 처리에는 여러 전략이 있습니다...",
+  "template": "knowledge",
+  "outputType": "page",
+  "tone": "formal"
+}
+```
 
-**시나리오 2: 네트워크 에러**
-1. Webhook URL을 잘못된 주소로 설정
-2. 캡처 실행
-3. 원본 텍스트는 표시되는지 확인
-4. 에러 메시지 표시 확인
-5. "다시 시도" 버튼 작동 확인
+### 2. Extension 통합 테스트
 
-**시나리오 3: 타임아웃**
-1. n8n 워크플로우에 30초 delay 추가
+**시나리오 1: 정상 플로우 (통찰 + 개인화)**
+
+1. Claude.ai에서 대화 진행
+2. "범위 선택 시작" 버튼 클릭
+3. 대화 영역 드래그하여 캡처
+4. 원본 텍스트 즉시 표시 확인 ✓
+5. "통찰 정리" 탭 선택됨 확인 ✓
+6. 10-15초 후 AI 정리 결과 자동 표시 확인 ✓
+7. "개인화" 버튼 클릭
+8. 어조 조정된 최종본 표시 확인 ✓
+9. 클립보드 복사 확인 ✓
+
+**시나리오 2: 템플릿 전환 (지식 정리)**
+
+1. 대화 캡처 완료
+2. "지식 정리" 탭 클릭
+3. AI 재처리 시작 확인 (로딩)
+4. 지식 정리 결과 표시 확인
+5. "전문화" 어조 선택
+6. 최종본 확인
+
+**시나리오 3: 네트워크 에러**
+
+1. n8n 서버 중지 (또는 URL 변경)
+2. 대화 캡처
+3. 원본은 표시되는지 확인 ✓
+4. 에러 메시지 표시 확인 ✓
+5. "원본은 사용 가능합니다" 토스트 확인 ✓
+
+**시나리오 4: 타임아웃**
+
+1. n8n 워크플로우에 60초 delay 추가
 2. 캡처 실행
 3. 타임아웃 에러 표시 확인
 4. 원본 텍스트는 사용 가능한지 확인
@@ -713,71 +915,138 @@ Content-Type: application/json
 ### 3. 성능 테스트
 
 **측정 항목:**
-- API 응답 시간 (평균, 최대, 최소)
-- UI 반응성 (로딩 상태 표시까지 시간)
-- 메모리 사용량
-- 캐싱 효과
+
+- 전체 파이프라인 실행 시간: 목표 10-15초
+- Perplexity 단계: 3-5초
+- Claude 추출 단계: 2-3초
+- Claude 언어화 단계: 3-5초
+- GPT 어조 단계: 2-3초
+- 네트워크 오버헤드: 1-2초
+
+**부하 테스트:**
+
+- 동시 요청 3개 처리 가능 여부
+- Rate Limit 도달 시 에러 처리 확인
 
 ---
 
 ## 배포 체크리스트
 
-### 코드 품질
-- [ ] TypeScript/JSDoc 주석 완료
-- [ ] console.log() 제거 또는 조건부 처리
-- [ ] 에러 처리 완료
-- [ ] 성능 최적화 완료
+### n8n 워크플로우
 
-### 설정 및 보안
-- [ ] Webhook URL은 사용자 설정으로 관리
-- [ ] API 키는 n8n에서만 관리 (프론트엔드 노출 금지)
-- [ ] HTTPS 강제 적용
+- [ ] 모든 API Credential 설정 완료
+- [ ] 모든 프롬프트 복사/붙여넣기 완료
+- [ ] 변수 치환 확인 ({{}} 문법)
+- [ ] 에러 처리 노드 추가
+- [ ] Webhook URL 환경 변수 설정 확인 (`${N8N_WEBHOOK_URL}`)
+- [ ] 워크플로우 활성화 (Active)
+
+### Extension 코드
+
+- [ ] APIService.js 구현 완료
+- [ ] ResultArea.js 수정 완료
+- [ ] Settings.js 수정 완료
+- [ ] 에러 처리 완료
+- [ ] console.log() 제거 또는 조건부 처리
+- [ ] JSDoc 주석 완료
 
 ### 테스트
-- [ ] 모든 시나리오 테스트 통과
-- [ ] Claude.ai / ChatGPT 테스트
-- [ ] 다양한 네트워크 환경 테스트
-- [ ] 에러 복구 시나리오 테스트
+
+- [ ] n8n 워크플로우 단위 테스트 통과
+- [ ] Extension 통합 테스트 통과
+- [ ] 에러 시나리오 테스트 통과
+- [ ] Claude.ai / ChatGPT 실제 캡처 테스트
+- [ ] 성능 테스트 통과 (10-15초)
 
 ### 문서화
-- [ ] README 업데이트
-- [ ] Phase 2 테스트 가이드 작성
-- [ ] n8n 설정 가이드 작성
-- [ ] 사용자 매뉴얼 업데이트
+
+- [ ] PHASE2_PLAN.md 업데이트
+- [ ] n8n 워크플로우 설정 가이드 작성
+- [ ] 프롬프트 파일 관리 가이드 작성
+- [ ] README.md 업데이트
+
+### 버전 관리
+
+- [ ] manifest.json 버전 업데이트 (v1.1.0)
+- [ ] CHANGELOG.md 작성
+- [ ] Git commit 및 tag 생성
+
+---
+
+## 비용 예측
+
+### API 사용 비용 (월 100회 기준)
+
+**Perplexity API:**
+- 모델: sonar
+- 평균 입력: 500 tokens
+- 평균 출력: 1000 tokens
+- 예상 비용: $1.00/월
+
+**Claude API:**
+- 모델: claude-3-5-sonnet-20241022
+- 단계: 추출 (2 또는 3) + 언어화 (4 또는 5) = 2단계
+- 평균 입력: 1000 tokens/단계
+- 평균 출력: 1500 tokens/단계
+- 예상 비용: $2.00/월
+
+**ChatGPT API:**
+- 모델: gpt-4o-mini
+- 평균 입력: 1200 tokens
+- 평균 출력: 1500 tokens
+- 예상 비용: $0.30/월
+
+**총 예상 비용: ~$3.30/월 (100회)**
+**1회당 비용: ~$0.033**
 
 ---
 
 ## 다음 단계 (Phase 2.1 - 선택적)
 
 ### 추가 기능 (우선순위 낮음)
-1. **다른 AI 모델 지원**
-   - Perplexity API
-   - Gemini API
-   - 사용자가 Settings에서 선택
+
+1. **사용자 API 키 지원 (Standard100+ 플랜)**
+   - Settings에서 사용자 API 키 입력
+   - n8n에서 사용자 API 키로 요청
+   - 서버에 AES-256-GCM 암호화 저장
 
 2. **캐싱 시스템**
    - 같은 텍스트 재처리 방지
    - Chrome Storage에 최근 10개 결과 캐시
+   - 캐시 히트 시 즉시 응답 (< 1초)
 
-3. **개인정보 자동 감지**
-   - AI 기반 개인정보 필터링
-   - 이메일, 전화번호, API 키 등 자동 마스킹
+3. **진행 상황 표시**
+   - "1/7 단계: Perplexity 분석 중..."
+   - "2/7 단계: Claude 통찰 추출 중..."
+   - 각 단계별 진행 바
+
+4. **결과 비교 뷰**
+   - 통찰 정리 vs 지식 정리 나란히 표시
+   - 개인화 vs 전문화 비교
 
 ---
 
 ## 참고 자료
 
-### n8n 공식 문서
+### 프롬프트 파일
+
+- 별도 저장소에서 프롬프트 관리 (Git 제외, private)
+- 6개 프롬프트 파일 (1, 2a, 2b, 3a, 4a, 4b)
+
+### API 문서
+
+- Perplexity API: https://docs.perplexity.ai/
+- Claude API: https://docs.anthropic.com/en/api/getting-started
+- OpenAI API: https://platform.openai.com/docs/api-reference
+
+### n8n 문서
+
 - Webhook: https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/
 - HTTP Request: https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/
 - Function: https://docs.n8n.io/code-examples/expressions/
 
-### API 문서
-- Claude API: https://docs.anthropic.com/en/api/getting-started
-- OpenAI API: https://platform.openai.com/docs/api-reference
-
 ---
 
-**작성일:** 2024-12-07
-**버전:** v2.0.0-plan
+**작성일:** 2024-12-08
+**버전:** v2.0.0-실제구현
 **담당자:** Bridge Notes Dev Team
