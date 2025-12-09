@@ -528,16 +528,8 @@ class BRIDGENotesCapture {
   }
 
   extractTextFromRange(range) {
-    // Range에서 텍스트 추출 (공통 조상의 자식 요소들 수집)
+    // Range에서 텍스트 추출 (메시지 레벨까지 올라가서 수집)
     try {
-      // 공통 조상 요소 찾기
-      let commonAncestor = range.commonAncestorContainer;
-
-      // 텍스트 노드인 경우 부모 요소로 이동
-      if (commonAncestor.nodeType === Node.TEXT_NODE) {
-        commonAncestor = commonAncestor.parentElement;
-      }
-
       // 시작과 끝 컨테이너
       let startContainer = range.startContainer;
       let endContainer = range.endContainer;
@@ -549,15 +541,68 @@ class BRIDGENotesCapture {
         endContainer = endContainer.parentElement;
       }
 
-      console.log("BRIDGE notes: Extracting from common ancestor", {
-        ancestor: commonAncestor.nodeName,
-        ancestorClass: commonAncestor.className
+      // 메시지 레벨 컨테이너 찾기 (더 상위로 올라감)
+      const findMessageLevelContainer = (element) => {
+        let current = element;
+        let depth = 0;
+        const maxDepth = 20;
+
+        while (current && current !== document.body && depth < maxDepth) {
+          // Claude 메시지 컨테이너 패턴
+          const classes = current.className || '';
+
+          // 메시지 컨테이너 특징: grid, flex, message 관련 클래스
+          if (
+            classes.includes('font-claude') ||
+            classes.includes('group/conversation') ||
+            current.hasAttribute('data-testid') ||
+            current.tagName === 'ARTICLE'
+          ) {
+            console.log(`BRIDGE notes: Found message container at depth ${depth}:`, {
+              tag: current.tagName,
+              class: current.className,
+              id: current.id
+            });
+            return current;
+          }
+
+          current = current.parentElement;
+          depth++;
+        }
+
+        // 메시지 컨테이너를 못 찾으면 원래 요소 반환
+        return element;
+      };
+
+      const startMessage = findMessageLevelContainer(startContainer);
+      const endMessage = findMessageLevelContainer(endContainer);
+
+      console.log("BRIDGE notes: Message containers found", {
+        startMessage: startMessage?.tagName,
+        endMessage: endMessage?.tagName,
+        same: startMessage === endMessage
       });
 
-      // 공통 조상의 모든 직접 자식 요소들
-      const childrenArray = Array.from(commonAncestor.children);
+      // 두 메시지의 공통 부모 찾기
+      let commonParent = startMessage;
+      while (commonParent && !commonParent.contains(endMessage)) {
+        commonParent = commonParent.parentElement;
+      }
 
-      // 시작 요소를 포함하는 자식 찾기
+      if (!commonParent) {
+        console.log("BRIDGE notes: Could not find common parent, using fallback");
+        return this.extractTextFromRangeFallback(range);
+      }
+
+      console.log("BRIDGE notes: Common parent found", {
+        tag: commonParent.tagName,
+        class: commonParent.className
+      });
+
+      // 공통 부모의 모든 직접 자식 요소들
+      const childrenArray = Array.from(commonParent.children);
+
+      // 시작 메시지를 포함하는 자식 찾기
       const findContainingChild = (element) => {
         for (const child of childrenArray) {
           if (child.contains(element) || child === element) {
@@ -567,12 +612,12 @@ class BRIDGENotesCapture {
         return null;
       };
 
-      const startChild = findContainingChild(startContainer);
-      const endChild = findContainingChild(endContainer);
+      const startChild = findContainingChild(startMessage);
+      const endChild = findContainingChild(endMessage);
 
-      console.log("BRIDGE notes: Found child boundaries", {
-        startChild: startChild?.nodeName,
-        endChild: endChild?.nodeName,
+      console.log("BRIDGE notes: Child boundaries", {
+        startChild: startChild?.tagName,
+        endChild: endChild?.tagName,
         totalChildren: childrenArray.length
       });
 
@@ -594,10 +639,10 @@ class BRIDGENotesCapture {
         }
       }
 
-      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} child elements`);
+      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} elements`);
 
       if (elementsToExtract.length === 0) {
-        console.log("BRIDGE notes: No child elements found, using fallback");
+        console.log("BRIDGE notes: No elements collected, using fallback");
         return this.extractTextFromRangeFallback(range);
       }
 
