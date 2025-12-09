@@ -21,7 +21,7 @@ export class Pricing {
         features: [
           { text: "사용횟수 5회", available: true },
           { text: "히스토리 3개 저장", available: true },
-          { text: "3가지 템플릿", available: true },
+          { text: "2가지 어조 (개인화/전문화)", available: true },
           { text: "다른 언어모델 연동", available: false },
           { text: "우선 지원", available: false },
         ],
@@ -36,7 +36,7 @@ export class Pricing {
         features: [
           { text: "사용횟수 30회", available: true },
           { text: "히스토리 10개 저장", available: true },
-          { text: "3가지 템플릿", available: true },
+          { text: "2가지 어조 (개인화/전문화)", available: true },
           { text: "다른 언어모델 연동", available: false },
           { text: "우선 지원", available: false },
         ],
@@ -51,7 +51,7 @@ export class Pricing {
         features: [
           { text: "사용횟수 100회", available: true },
           { text: "히스토리 10개 저장", available: true },
-          { text: "3가지 템플릿", available: true },
+          { text: "2가지 어조 (개인화/전문화)", available: true },
           { text: "다른 언어모델 연동", available: true },
           { text: "우선 지원", available: false },
         ],
@@ -66,7 +66,7 @@ export class Pricing {
         features: [
           { text: "무제한 사용", available: true },
           { text: "히스토리 10개 저장", available: true },
-          { text: "3가지 템플릿", available: true },
+          { text: "2가지 어조 (개인화/전문화)", available: true },
           { text: "다른 언어모델 연동", available: true },
           { text: "우선 지원", available: true },
         ],

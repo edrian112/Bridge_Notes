@@ -11,7 +11,8 @@ export class ResultArea {
     this.originalText = document.getElementById("originalText");
     this.resultText = document.getElementById("resultText");
     this.loadingState = document.getElementById("loadingState");
-    this.tabButtons = document.querySelectorAll(".tab-button");
+    // 템플릿 탭 제거됨
+    // this.tabButtons = document.querySelectorAll(".tab-button");
 
     // 새로 추가된 요소들
     this.copyOriginalBtn = document.getElementById("copyOriginalBtn");
@@ -28,7 +29,7 @@ export class ResultArea {
     // 워크플로우 상태
     this.currentStep = 0; // 0: empty, 1: text+template, 2: result+tone, 3: final
     this.capturedText = "";
-    this.selectedTemplate = "";
+    this.selectedTemplate = "insight"; // 템플릿 고정: 'insight'
     this.processedText = "";
     this.selectedTone = "";
     this.finalText = "";
@@ -47,13 +48,7 @@ export class ResultArea {
       });
     }
 
-    // 템플릿 탭 클릭 이벤트
-    this.tabButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const template = button.dataset.template;
-        this.switchTemplate(template);
-      });
-    });
+    // 템플릿 탭 제거됨 - 'insight'로 고정
 
     // 어조 버튼 클릭 이벤트
     this.toneButtons.forEach((btn) => {
@@ -125,13 +120,10 @@ export class ResultArea {
     // 버튼 상태 초기화
     if (this.copyBtn) this.copyBtn.disabled = true;
 
-    // 기본 템플릿으로 자동 시작 (설정값 또는 insight)
-    const defaultTemplate = this.settings?.getSetting("defaultTemplate") || "insight";
-    console.log("기본 템플릿으로 자동 처리 시작:", defaultTemplate);
-    this.activateTab(defaultTemplate);
+    // 템플릿은 'insight'로 고정
+    this.selectedTemplate = "insight";
+    console.log("템플릿 고정: insight - 자동 AI 처리 시작");
 
-    // 템플릿 선택 및 자동 AI 처리
-    this.selectedTemplate = defaultTemplate;
     await this.delay(300); // 짧은 지연
     await this.processWithAI();
   }
@@ -164,30 +156,26 @@ export class ResultArea {
   }
 
   /**
-   * 템플릿 선택 (선택만 하고 자동 실행하지 않음)
+   * 템플릿 선택 (템플릿 탭 제거로 미사용)
    */
-  switchTemplate(template) {
-    console.log("템플릿 선택:", template);
-
-    // 탭 활성화
-    this.activateTab(template);
-
-    // 템플릿 저장만 (재생성 버튼을 눌러야 실행됨)
-    this.selectedTemplate = template;
-  }
+  // switchTemplate(template) {
+  //   console.log("템플릿 선택:", template);
+  //   this.activateTab(template);
+  //   this.selectedTemplate = template;
+  // }
 
   /**
-   * 탭 UI 활성화
+   * 탭 UI 활성화 (템플릿 탭 제거로 미사용)
    */
-  activateTab(template) {
-    this.tabButtons.forEach((btn) => {
-      if (btn.dataset.template === template) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-  }
+  // activateTab(template) {
+  //   this.tabButtons.forEach((btn) => {
+  //     if (btn.dataset.template === template) {
+  //       btn.classList.add("active");
+  //     } else {
+  //       btn.classList.remove("active");
+  //     }
+  //   });
+  // }
 
   /**
    * 전체 AI 처리 (템플릿 → 어조 적용, 최종 결과만 표시)
@@ -285,10 +273,7 @@ export class ResultArea {
       this.resultText.disabled = false; // 수정 가능
     }
 
-    // 템플릿 버튼 활성화 유지 (재생성용)
-    this.tabButtons.forEach((btn) => {
-      btn.disabled = false;
-    });
+    // 템플릿 탭 제거됨
 
     // 어조 버튼 활성화 유지 (재생성용)
     this.toneButtons.forEach((btn) => {
@@ -321,19 +306,12 @@ export class ResultArea {
   }
 
   /**
-   * 재생성: 선택된 템플릿과 톤으로 결과 재생성
+   * 재생성: 선택된 톤으로 결과 재생성 (템플릿은 'insight' 고정)
    */
   async regenerate() {
     console.log("재생성 시작");
 
-    // 템플릿과 톤이 선택되었는지 확인
-    if (!this.selectedTemplate) {
-      if (this.toast) {
-        this.toast.error("템플릿을 선택해주세요!");
-      }
-      return;
-    }
-
+    // 톤이 선택되었는지 확인
     if (!this.selectedTone) {
       if (this.toast) {
         this.toast.error("어조를 선택해주세요!");

@@ -136,7 +136,7 @@ export class Settings {
    */
   renderSettings() {
     this.languageSetting.value = this.currentSettings.language;
-    this.defaultTemplateSetting.value = this.currentSettings.defaultTemplate;
+    // defaultTemplate UI 제거됨 (내부적으로 'insight' 고정 사용)
     this.defaultToneSetting.value = this.currentSettings.defaultTone;
     this.copyTargetSetting.value = this.currentSettings.copyTarget;
     this.darkModeSetting.checked = this.currentSettings.darkMode;
@@ -226,7 +226,7 @@ export class Settings {
     return {
       maxHistory: maxHistory,
       language: this.languageSetting.value,
-      defaultTemplate: this.defaultTemplateSetting.value,
+      defaultTemplate: 'insight', // 템플릿 UI 제거, 'insight'로 고정
       defaultTone: this.defaultToneSetting.value,
       copyTarget: this.copyTargetSetting.value,
       shiftClickMode: this.shiftClickModeSetting.value,
