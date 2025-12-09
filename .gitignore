@@ -43,3 +43,6 @@ claudedocs/
 *.bak
 *.backup
 
+# 시스템 문서 (외부 관리)
+BRIDGE_NOTES_SYSTEM_ARCHITECTURE.md
+
