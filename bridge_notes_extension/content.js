@@ -528,48 +528,148 @@ class BRIDGENotesCapture {
   }
 
   extractTextFromRange(range) {
-    // Range에서 텍스트 추출 (불필요한 요소 제거)
+    // Range에서 텍스트 추출 (수동 DOM 순회로 모든 중간 요소 포함)
+    try {
+      // 공통 조상 요소 찾기
+      let commonAncestor = range.commonAncestorContainer;
+
+      // 텍스트 노드인 경우 부모 요소 사용
+      if (commonAncestor.nodeType === Node.TEXT_NODE) {
+        commonAncestor = commonAncestor.parentElement;
+      }
+
+      console.log("BRIDGE notes: Extracting range from", commonAncestor.nodeName);
+
+      // 모든 자식 요소를 순회하며 범위 내에 있는 요소 수집
+      const allElements = Array.from(commonAncestor.querySelectorAll('*'));
+      const elementsInRange = [];
+
+      // 범위의 시작과 끝 위치 계산
+      const rangeRect = range.getBoundingClientRect();
+
+      for (const element of allElements) {
+        try {
+          // 각 요소에 대한 범위 생성
+          const elementRange = document.createRange();
+          elementRange.selectNodeContents(element);
+
+          // 요소가 선택 범위와 겹치는지 확인
+          const elementRect = element.getBoundingClientRect();
+
+          // 범위와 교차하는지 체크
+          if (this.rangesIntersect(range, elementRange)) {
+            elementsInRange.push(element);
+          }
+        } catch (e) {
+          // 일부 요소는 Range 생성 실패 가능 (무시)
+        }
+      }
+
+      console.log(`BRIDGE notes: Found ${elementsInRange.length} elements in range`);
+
+      // 수집된 요소들을 임시 div에 복제
+      const tempDiv = document.createElement('div');
+
+      if (elementsInRange.length > 0) {
+        elementsInRange.forEach(element => {
+          const clone = element.cloneNode(true);
+          tempDiv.appendChild(clone);
+        });
+      } else {
+        // 요소를 찾지 못한 경우 fallback: cloneContents 사용
+        console.log("BRIDGE notes: No elements found, using fallback method");
+        return this.extractTextFromRangeFallback(range);
+      }
+
+      // 제거할 요소들 (확장)
+      const selectorsToRemove = [
+        "button",
+        '[role="button"]',
+        ".copy-button",
+        '[class*="copy"]',
+        '[class*="CopyButton"]',
+        "svg",
+        '[aria-hidden="true"]',
+        '[class*="toolbar"]',
+        '[class*="Toolbar"]',
+        "img",
+        "video",
+        "audio",
+        // 접근성 전용 텍스트 제거
+        '[class*="sr-only"]',
+        '[class*="screen-reader"]',
+        '[class*="visually-hidden"]',
+        '[role="presentation"]',
+        '[aria-label]:empty',
+        // 숨겨진 요소 제거
+        '[style*="display: none"]',
+        '[style*="visibility: hidden"]',
+        '[hidden]',
+      ];
+
+      selectorsToRemove.forEach((selector) => {
+        tempDiv.querySelectorAll(selector).forEach((el) => el.remove());
+      });
+
+      // 실제로 보이지 않는 요소 제거
+      this.removeHiddenElements(tempDiv);
+
+      // 텍스트 추출
+      let text = tempDiv.innerText || tempDiv.textContent || "";
+
+      // 중복 라인 제거 + 정리
+      text = this.cleanDuplicateLines(text);
+
+      console.log(`BRIDGE notes: Extracted ${text.length} characters`);
+
+      return text;
+    } catch (error) {
+      console.error("BRIDGE notes: Error in extractTextFromRange", error);
+      // Fallback to original method
+      return this.extractTextFromRangeFallback(range);
+    }
+  }
+
+  rangesIntersect(range1, range2) {
+    // 두 Range가 겹치는지 확인
+    try {
+      // range1이 range2보다 완전히 앞에 있는지
+      if (range1.compareBoundaryPoints(Range.END_TO_START, range2) < 0) {
+        return false;
+      }
+      // range1이 range2보다 완전히 뒤에 있는지
+      if (range1.compareBoundaryPoints(Range.START_TO_END, range2) > 0) {
+        return false;
+      }
+      // 그 외의 경우는 겹침
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  extractTextFromRangeFallback(range) {
+    // Fallback: 원래 방식 (cloneContents)
     const fragment = range.cloneContents();
     const tempDiv = document.createElement('div');
     tempDiv.appendChild(fragment);
 
-    // 제거할 요소들 (확장)
     const selectorsToRemove = [
-      "button",
-      '[role="button"]',
-      ".copy-button",
-      '[class*="copy"]',
-      '[class*="CopyButton"]',
-      "svg",
-      '[aria-hidden="true"]',
-      '[class*="toolbar"]',
-      '[class*="Toolbar"]',
-      "img",
-      "video",
-      "audio",
-      // 접근성 전용 텍스트 제거
-      '[class*="sr-only"]',
-      '[class*="screen-reader"]',
-      '[class*="visually-hidden"]',
-      '[role="presentation"]',
-      '[aria-label]:empty',
-      // 숨겨진 요소 제거
-      '[style*="display: none"]',
-      '[style*="visibility: hidden"]',
-      '[hidden]',
+      "button", '[role="button"]', ".copy-button", '[class*="copy"]',
+      '[class*="CopyButton"]', "svg", '[aria-hidden="true"]',
+      '[class*="toolbar"]', '[class*="Toolbar"]', "img", "video", "audio",
+      '[class*="sr-only"]', '[class*="screen-reader"]',
+      '[class*="visually-hidden"]', '[role="presentation"]',
+      '[aria-label]:empty', '[style*="display: none"]',
+      '[style*="visibility: hidden"]', '[hidden]',
     ];
 
     selectorsToRemove.forEach((selector) => {
       tempDiv.querySelectorAll(selector).forEach((el) => el.remove());
     });
 
-    // 실제로 보이지 않는 요소 제거
     this.removeHiddenElements(tempDiv);
-
-    // 텍스트 추출
     let text = tempDiv.innerText || tempDiv.textContent || "";
-
-    // 중복 라인 제거 + 정리
     text = this.cleanDuplicateLines(text);
 
     return text;
