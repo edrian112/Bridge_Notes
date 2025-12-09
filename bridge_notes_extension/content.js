@@ -528,58 +528,78 @@ class BRIDGENotesCapture {
   }
 
   extractTextFromRange(range) {
-    // Range에서 텍스트 추출 (수동 DOM 순회로 모든 중간 요소 포함)
+    // Range에서 텍스트 추출 (시작~끝 사이의 모든 요소 수집)
     try {
-      // 공통 조상 요소 찾기
-      let commonAncestor = range.commonAncestorContainer;
+      // 시작과 끝 컨테이너 찾기
+      let startContainer = range.startContainer;
+      let endContainer = range.endContainer;
 
-      // 텍스트 노드인 경우 부모 요소 사용
-      if (commonAncestor.nodeType === Node.TEXT_NODE) {
-        commonAncestor = commonAncestor.parentElement;
+      // 텍스트 노드인 경우 부모 요소로 이동
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        startContainer = startContainer.parentElement;
+      }
+      if (endContainer.nodeType === Node.TEXT_NODE) {
+        endContainer = endContainer.parentElement;
       }
 
-      console.log("BRIDGE notes: Extracting range from", commonAncestor.nodeName);
+      // 시작과 끝의 메시지 컨테이너 찾기
+      const startMessage = this.findMessageElement(startContainer);
+      const endMessage = this.findMessageElement(endContainer);
 
-      // 모든 자식 요소를 순회하며 범위 내에 있는 요소 수집
-      const allElements = Array.from(commonAncestor.querySelectorAll('*'));
-      const elementsInRange = [];
+      console.log("BRIDGE notes: Extracting range", {
+        startMessage: startMessage?.nodeName,
+        endMessage: endMessage?.nodeName,
+        same: startMessage === endMessage
+      });
 
-      // 범위의 시작과 끝 위치 계산
-      const rangeRect = range.getBoundingClientRect();
+      // 수집할 요소들
+      const elementsToExtract = [];
 
-      for (const element of allElements) {
-        try {
-          // 각 요소에 대한 범위 생성
-          const elementRange = document.createRange();
-          elementRange.selectNodeContents(element);
+      if (startMessage && endMessage) {
+        if (startMessage === endMessage) {
+          // 같은 메시지 내에서의 선택
+          elementsToExtract.push(startMessage);
+        } else {
+          // 다른 메시지 간의 선택 - 시작~끝 사이 모든 형제 요소 수집
+          elementsToExtract.push(startMessage);
 
-          // 요소가 선택 범위와 겹치는지 확인
-          const elementRect = element.getBoundingClientRect();
+          // 시작 메시지 이후의 모든 형제 요소를 끝 메시지까지 수집
+          let currentElement = startMessage.nextElementSibling;
+          let safetyCounter = 0;
+          const MAX_SIBLINGS = 1000; // 무한루프 방지
 
-          // 범위와 교차하는지 체크
-          if (this.rangesIntersect(range, elementRange)) {
-            elementsInRange.push(element);
+          while (currentElement && safetyCounter < MAX_SIBLINGS) {
+            elementsToExtract.push(currentElement);
+
+            // 끝 메시지에 도달하면 종료
+            if (currentElement === endMessage) {
+              break;
+            }
+
+            currentElement = currentElement.nextElementSibling;
+            safetyCounter++;
           }
-        } catch (e) {
-          // 일부 요소는 Range 생성 실패 가능 (무시)
+
+          // endMessage가 아직 추가되지 않았다면 추가
+          if (!elementsToExtract.includes(endMessage)) {
+            elementsToExtract.push(endMessage);
+          }
         }
       }
 
-      console.log(`BRIDGE notes: Found ${elementsInRange.length} elements in range`);
+      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} message elements`);
+
+      if (elementsToExtract.length === 0) {
+        console.log("BRIDGE notes: No message elements found, using fallback");
+        return this.extractTextFromRangeFallback(range);
+      }
 
       // 수집된 요소들을 임시 div에 복제
       const tempDiv = document.createElement('div');
-
-      if (elementsInRange.length > 0) {
-        elementsInRange.forEach(element => {
-          const clone = element.cloneNode(true);
-          tempDiv.appendChild(clone);
-        });
-      } else {
-        // 요소를 찾지 못한 경우 fallback: cloneContents 사용
-        console.log("BRIDGE notes: No elements found, using fallback method");
-        return this.extractTextFromRangeFallback(range);
-      }
+      elementsToExtract.forEach(element => {
+        const clone = element.cloneNode(true);
+        tempDiv.appendChild(clone);
+      });
 
       // 제거할 요소들 (확장)
       const selectorsToRemove = [
@@ -620,31 +640,13 @@ class BRIDGENotesCapture {
       // 중복 라인 제거 + 정리
       text = this.cleanDuplicateLines(text);
 
-      console.log(`BRIDGE notes: Extracted ${text.length} characters`);
+      console.log(`BRIDGE notes: Extracted ${text.length} characters from ${elementsToExtract.length} elements`);
 
       return text;
     } catch (error) {
       console.error("BRIDGE notes: Error in extractTextFromRange", error);
       // Fallback to original method
       return this.extractTextFromRangeFallback(range);
-    }
-  }
-
-  rangesIntersect(range1, range2) {
-    // 두 Range가 겹치는지 확인
-    try {
-      // range1이 range2보다 완전히 앞에 있는지
-      if (range1.compareBoundaryPoints(Range.END_TO_START, range2) < 0) {
-        return false;
-      }
-      // range1이 range2보다 완전히 뒤에 있는지
-      if (range1.compareBoundaryPoints(Range.START_TO_END, range2) > 0) {
-        return false;
-      }
-      // 그 외의 경우는 겹침
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 
