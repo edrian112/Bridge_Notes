@@ -528,13 +528,20 @@ class BRIDGENotesCapture {
   }
 
   extractTextFromRange(range) {
-    // Range에서 텍스트 추출 (시작~끝 사이의 모든 요소 수집)
+    // Range에서 텍스트 추출 (공통 조상의 자식 요소들 수집)
     try {
-      // 시작과 끝 컨테이너 찾기
+      // 공통 조상 요소 찾기
+      let commonAncestor = range.commonAncestorContainer;
+
+      // 텍스트 노드인 경우 부모 요소로 이동
+      if (commonAncestor.nodeType === Node.TEXT_NODE) {
+        commonAncestor = commonAncestor.parentElement;
+      }
+
+      // 시작과 끝 컨테이너
       let startContainer = range.startContainer;
       let endContainer = range.endContainer;
 
-      // 텍스트 노드인 경우 부모 요소로 이동
       if (startContainer.nodeType === Node.TEXT_NODE) {
         startContainer = startContainer.parentElement;
       }
@@ -542,55 +549,55 @@ class BRIDGENotesCapture {
         endContainer = endContainer.parentElement;
       }
 
-      // 시작과 끝의 메시지 컨테이너 찾기
-      const startMessage = this.findMessageElement(startContainer);
-      const endMessage = this.findMessageElement(endContainer);
+      console.log("BRIDGE notes: Extracting from common ancestor", {
+        ancestor: commonAncestor.nodeName,
+        ancestorClass: commonAncestor.className
+      });
 
-      console.log("BRIDGE notes: Extracting range", {
-        startMessage: startMessage?.nodeName,
-        endMessage: endMessage?.nodeName,
-        same: startMessage === endMessage
+      // 공통 조상의 모든 직접 자식 요소들
+      const childrenArray = Array.from(commonAncestor.children);
+
+      // 시작 요소를 포함하는 자식 찾기
+      const findContainingChild = (element) => {
+        for (const child of childrenArray) {
+          if (child.contains(element) || child === element) {
+            return child;
+          }
+        }
+        return null;
+      };
+
+      const startChild = findContainingChild(startContainer);
+      const endChild = findContainingChild(endContainer);
+
+      console.log("BRIDGE notes: Found child boundaries", {
+        startChild: startChild?.nodeName,
+        endChild: endChild?.nodeName,
+        totalChildren: childrenArray.length
       });
 
       // 수집할 요소들
       const elementsToExtract = [];
 
-      if (startMessage && endMessage) {
-        if (startMessage === endMessage) {
-          // 같은 메시지 내에서의 선택
-          elementsToExtract.push(startMessage);
-        } else {
-          // 다른 메시지 간의 선택 - 시작~끝 사이 모든 형제 요소 수집
-          elementsToExtract.push(startMessage);
+      if (startChild && endChild) {
+        const startIndex = childrenArray.indexOf(startChild);
+        const endIndex = childrenArray.indexOf(endChild);
 
-          // 시작 메시지 이후의 모든 형제 요소를 끝 메시지까지 수집
-          let currentElement = startMessage.nextElementSibling;
-          let safetyCounter = 0;
-          const MAX_SIBLINGS = 1000; // 무한루프 방지
+        // 시작부터 끝까지의 모든 자식 요소 수집
+        if (startIndex !== -1 && endIndex !== -1) {
+          const minIndex = Math.min(startIndex, endIndex);
+          const maxIndex = Math.max(startIndex, endIndex);
 
-          while (currentElement && safetyCounter < MAX_SIBLINGS) {
-            elementsToExtract.push(currentElement);
-
-            // 끝 메시지에 도달하면 종료
-            if (currentElement === endMessage) {
-              break;
-            }
-
-            currentElement = currentElement.nextElementSibling;
-            safetyCounter++;
-          }
-
-          // endMessage가 아직 추가되지 않았다면 추가
-          if (!elementsToExtract.includes(endMessage)) {
-            elementsToExtract.push(endMessage);
+          for (let i = minIndex; i <= maxIndex; i++) {
+            elementsToExtract.push(childrenArray[i]);
           }
         }
       }
 
-      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} message elements`);
+      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} child elements`);
 
       if (elementsToExtract.length === 0) {
-        console.log("BRIDGE notes: No message elements found, using fallback");
+        console.log("BRIDGE notes: No child elements found, using fallback");
         return this.extractTextFromRangeFallback(range);
       }
 
