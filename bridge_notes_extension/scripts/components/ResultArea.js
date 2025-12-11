@@ -187,25 +187,7 @@ export class ResultArea {
     this.showLoading("AI가 내용을 정리하고 있습니다...");
 
     try {
-      // Step 1: 템플릿 적용 (대화 정리)
-      if (this.useMockData) {
-        // Mock Data 사용
-        console.log("[Mock Mode] Using mock data for summarization");
-        await this.delay(1500);
-        this.processedText = this.getMockProcessedText(this.selectedTemplate);
-      } else {
-        // Real API 호출
-        console.log("[API Mode] Calling n8n webhook for summarization");
-        const result = await this.apiService.process({
-          text: this.capturedText,
-          action: "summarize",
-          template: this.selectedTemplate,
-        });
-        this.processedText = result.result;
-      }
-
-      // Step 2: 어조 적용 (processedText를 기반으로 finalText 생성)
-      // 이미 선택된 톤이 있으면 그것을 사용, 없으면 기본 톤 (설정값 또는 friendly) 사용
+      // 톤 설정 (없으면 기본값 사용)
       if (!this.selectedTone) {
         const defaultTone = this.settings?.getSetting("defaultTone") || "friendly";
         this.selectedTone = defaultTone;
@@ -220,23 +202,25 @@ export class ResultArea {
         }
       });
 
+      // 전체 파이프라인 1번 호출 (n8n이 Step 1~4 전부 처리)
       if (this.useMockData) {
         // Mock Data 사용
-        console.log("[Mock Mode] Using mock data for tone adjustment");
-        await this.delay(1500);
+        console.log("[Mock Mode] Using mock data for full pipeline");
+        await this.delay(3000); // 전체 처리 시뮬레이션
         this.finalText = this.getMockFinalText(this.selectedTone);
       } else {
-        // Real API 호출
-        console.log("[API Mode] Calling n8n webhook for tone adjustment");
+        // Real API 호출 - 1번에 모든 Step 처리
+        console.log("[API Mode] Calling n8n webhook for full pipeline (Step 1-4)");
         const result = await this.apiService.process({
-          text: this.processedText,
-          action: "tone-adjust",
+          text: this.capturedText,
+          action: "full-process", // n8n이 전체 Step 1~4 실행
+          template: this.selectedTemplate,
           tone: this.selectedTone,
         });
         this.finalText = result.result;
       }
 
-      // Step 3: 최종 결과만 표시
+      // 최종 결과만 표시
       this.showFinalResult();
     } catch (error) {
       this.hideLoading();
