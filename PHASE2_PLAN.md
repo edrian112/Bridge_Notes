@@ -1341,7 +1341,234 @@ Done in ~10 seconds ✓
 
 ---
 
+## 진행 상황 표시 UI 및 캐싱 시스템
+
+### 개요
+
+**구현일:** 2024-12-11
+**목표:** 사용자 경험 개선 (투명한 진행 상황 + 빠른 캐시 응답)
+
+### Progress UI (심플 디자인)
+
+**단계별 표시:**
+```
+대화 분석 중...
+내용 정리 중...
+표현 다듬는 중...
+어조 조정 중...
+```
+
+**특징:**
+- 아이콘/퍼센티지 없는 깔끔한 텍스트 표시
+- Active/Completed 상태 전환 (CSS transition)
+- 다크모드 완벽 지원
+- 4단계 각 3초씩 시뮬레이션
+
+**HTML 구조:**
+```html
+<div class="loading-progress">
+  <div class="progress-step active" data-step="1">대화 분석 중...</div>
+  <div class="progress-step" data-step="2">내용 정리 중...</div>
+  <div class="progress-step" data-step="3">표현 다듬는 중...</div>
+  <div class="progress-step" data-step="4">어조 조정 중...</div>
+</div>
+```
+
+**CSS 핵심:**
+```css
+.progress-step {
+  color: #9ca3af;
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  color: #667eea;
+  font-weight: 500;
+  opacity: 1;
+}
+
+.progress-step.completed {
+  color: #6b7280;
+  opacity: 0.6;
+}
+```
+
+### Caching System
+
+**캐싱 전략:**
+```javascript
+// Cache Key 생성
+const hash = SHA-256(text).substring(0, 16);
+const cacheKey = `${hash}_${template}_${tone}`;
+
+// Chrome Storage 구조
+{
+  "bridgeNotesCache": {
+    "abc123_insight_friendly": {
+      "originalText": "...",  // 200자 저장 (디버깅용)
+      "template": "insight",
+      "tone": "friendly",
+      "result": "...",
+      "step3Result": "...",
+      "timestamp": 1234567890,
+      "lastAccessed": 1234567890,
+      "metadata": {...}
+    }
+    // ... 최대 10개
+  }
+}
+```
+
+**LRU (Least Recently Used) 관리:**
+- 최대 10개 캐시 항목 유지
+- 11번째 항목 추가 시 lastAccessed 가장 오래된 항목 삭제
+- 접근 시마다 lastAccessed 업데이트
+
+**캐시 무효화:**
+- 7일 경과 시 자동 만료
+- 같은 텍스트라도 template/tone 다르면 별도 캐시
+
+**캐시 플로우:**
+```
+User captures text
+  ↓
+ResultArea.processWithAI()
+  ↓
+CacheService.get(text, template, tone)
+  ↓
+Cache Hit? → YES → 즉시 결과 표시 (< 1초)
+           → NO  → API 호출 → CacheService.set() → 결과 표시
+```
+
+### CacheService API
+
+**주요 메서드:**
+```javascript
+class CacheService {
+  async get(text, template, tone)
+  // Returns: { result, step3Result, metadata } | null
+
+  async set(text, template, tone, data)
+  // Stores with LRU management
+
+  async clear()
+  // Removes all cache
+
+  async getStats()
+  // Returns: { count, maxSize, items }
+
+  async hashText(text)
+  // Returns: SHA-256 hash (16 chars)
+}
+```
+
+### ResultArea Integration
+
+**processWithAI() 수정:**
+```javascript
+async processWithAI() {
+  // 1. Check cache
+  const cached = await this.cacheService.get(
+    this.capturedText,
+    this.selectedTemplate,
+    this.selectedTone
+  );
+
+  if (cached) {
+    // Cache hit - instant result
+    this.finalText = cached.result;
+    this.step3Result = cached.step3Result;
+    this.showFinalResult();
+    this.toast.success("캐시된 결과를 불러왔습니다");
+    return;
+  }
+
+  // 2. Cache miss - API call
+  this.showLoading();
+
+  // 3. Progress simulation (parallel with API)
+  const progressPromise = this.simulateProgress();
+  const result = await this.apiService.process({...});
+
+  await progressPromise;
+
+  // 4. Save to cache
+  await this.cacheService.set(
+    this.capturedText,
+    this.selectedTemplate,
+    this.selectedTone,
+    { result: this.finalText, step3Result, metadata }
+  );
+
+  this.showFinalResult();
+}
+```
+
+**Progress Simulation:**
+```javascript
+async simulateProgress() {
+  const steps = [
+    { index: 0, duration: 3000 },  // 대화 분석 중...
+    { index: 1, duration: 3000 },  // 내용 정리 중...
+    { index: 2, duration: 3000 },  // 표현 다듬는 중...
+    { index: 3, duration: 3000 },  // 어조 조정 중...
+  ];
+
+  for (const step of steps) {
+    this.updateProgressStep(step.index);
+    await this.delay(step.duration);
+  }
+}
+```
+
+### Performance Metrics
+
+**Cache Hit Scenarios:**
+- 같은 대화 다른 어조 시도: Cache Miss (tone 다름)
+- 같은 대화 재캡처: Cache Hit (모두 동일)
+- 예상 Cache Hit Rate: 30-40%
+
+**Time Savings:**
+- Cache Hit: < 1초 (90%+ 시간 절약)
+- Cache Miss: ~12초 (full pipeline)
+- Average: ~8초 (30% hit rate 가정)
+
+**Storage Usage:**
+- 10개 항목 × ~5KB/항목 = ~50KB
+- Chrome Storage Local Limit: 10MB (충분함)
+
+### User Experience Benefits
+
+**투명성:**
+- 10-15초 대기 시간 동안 무슨 일이 일어나는지 명확히 표시
+- "멈춘 것 같은" 불안감 해소
+
+**속도 감:**
+- Progress 애니메이션으로 체감 속도 향상
+- Cache hit 시 즉각적인 만족감
+
+**신뢰성:**
+- 반복 쿼리 시 일관된 빠른 응답
+- "캐시된 결과" 토스트로 투명성 제공
+
+### Implementation Details
+
+**파일 변경:**
+- `CacheService.js`: New service (178 lines)
+- `ResultArea.js`: Cache integration + progress methods
+- `sidepanel.html`: Progress HTML structure
+- `sidepanel.css`: Progress styles (light + dark mode)
+- `sidepanel.js`: CacheService import + injection
+
+**보안:**
+- SHA-256 해싱으로 안전한 키 생성
+- Chrome Storage API 사용 (브라우저 샌드박스 내)
+- 민감 정보 최소화 (텍스트 200자만 저장)
+
+---
+
 **작성일:** 2024-12-08
-**최종 업데이트:** 2024-12-11 (재생성 최적화 완료)
-**버전:** v2.1.0-regenerate-optimization
+**최종 업데이트:** 2024-12-11 (Progress UI + Caching 완료)
+**버전:** v2.2.0-ux-optimization
 **담당자:** Bridge Notes Dev Team
