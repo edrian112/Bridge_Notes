@@ -209,12 +209,34 @@ class BRIDGENotesCapture {
   }
 
   handleKeyDown(e) {
-    if (e.key === "Escape" && this.selectionMode) {
+    if (!this.selectionMode) return;
+
+    // ESC: 선택 모드 취소
+    if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       console.log("BRIDGE notes: ESC pressed, deactivating selection mode");
       this.deactivateSelectionMode();
+      return false;
+    }
+
+    // Cmd+ArrowUp/Down (Mac) 또는 Ctrl+ArrowUp/Down (Windows/Linux): 스크롤
+    const isModifierPressed = e.metaKey || e.ctrlKey; // metaKey = Cmd (Mac), ctrlKey = Ctrl (Win/Linux)
+
+    if (isModifierPressed && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const scrollAmount = 300; // 스크롤 이동 거리 (픽셀)
+      const direction = e.key === "ArrowUp" ? -1 : 1;
+
+      window.scrollBy({
+        top: scrollAmount * direction,
+        behavior: "smooth"
+      });
+
+      console.log(`BRIDGE notes: Scroll ${e.key === "ArrowUp" ? "up" : "down"} by ${scrollAmount}px`);
       return false;
     }
   }
