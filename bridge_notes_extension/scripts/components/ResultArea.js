@@ -21,9 +21,6 @@ export class ResultArea {
     this.copyBtn = document.getElementById("copyResultBtn");
     this.regenerateBtn = document.getElementById("regenerateBtn");
 
-    // Progress steps
-    this.progressSteps = document.querySelectorAll(".progress-step");
-
     this.toast = toast;
     this.errorHandler = errorHandler;
     this.settings = settings;
@@ -227,20 +224,15 @@ export class ResultArea {
       // 전체 파이프라인 1번 호출 (n8n이 Step 1~4 전부 처리)
       if (this.useMockData) {
         // Mock Data 사용
-        await this.simulateProgress();
         this.finalText = this.getMockFinalText(this.selectedTone);
       } else {
-        // Real API 호출 with progress simulation
-        const progressPromise = this.simulateProgress();
-
+        // Real API 호출
         const result = await this.apiService.process({
           text: this.capturedText,
           action: "full-process", // n8n이 전체 Step 1~4 실행
           template: this.selectedTemplate,
           tone: this.selectedTone,
         });
-
-        await progressPromise; // progress 완료 대기
 
         this.finalText = result.result;
         this.step3Result = result.step3Result || ""; // Step 3 결과 캐싱
@@ -416,7 +408,6 @@ export class ResultArea {
    */
   showLoading() {
     if (this.loadingState) {
-      this.resetProgress(); // Progress 초기화
       this.loadingState.style.display = "flex";
     }
     if (this.resultText) {
@@ -507,50 +498,5 @@ ${this.processedText}
 
 감사합니다.`;
     }
-  }
-
-  /**
-   * Progress 시뮬레이션 (4단계)
-   */
-  async simulateProgress() {
-    const steps = [
-      { index: 0, duration: 3000 },  // 대화 분석 중... (3초)
-      { index: 1, duration: 3000 },  // 내용 정리 중... (3초)
-      { index: 2, duration: 3000 },  // 표현 다듬는 중... (3초)
-      { index: 3, duration: 3000 },  // 어조 조정 중... (3초)
-    ];
-
-    for (const step of steps) {
-      this.updateProgressStep(step.index);
-      await this.delay(step.duration);
-    }
-  }
-
-  /**
-   * Progress step 업데이트
-   * @param {number} stepIndex - 현재 활성화할 step (0-3)
-   */
-  updateProgressStep(stepIndex) {
-    this.progressSteps.forEach((step, index) => {
-      step.classList.remove('active', 'completed');
-
-      if (index < stepIndex) {
-        step.classList.add('completed');
-      } else if (index === stepIndex) {
-        step.classList.add('active');
-      }
-    });
-  }
-
-  /**
-   * Progress 초기화
-   */
-  resetProgress() {
-    this.progressSteps.forEach((step, index) => {
-      step.classList.remove('active', 'completed');
-      if (index === 0) {
-        step.classList.add('active');
-      }
-    });
   }
 }
