@@ -66,8 +66,15 @@ class BRIDGENotesCapture {
     // 클릭 이벤트 리스너 등록
     document.addEventListener("click", this.boundHandleClick, true);
 
-    // ESC 키로 취소 - window 레벨에서 캡처
+    // 키보드 이벤트 - document와 window 양쪽에 등록 (포커스 문제 해결)
+    document.addEventListener("keydown", this.boundHandleKeyDown, true);
     window.addEventListener("keydown", this.boundHandleKeyDown, true);
+
+    // body에 포커스를 주어 키 이벤트 확실하게 캡처
+    if (document.body) {
+      document.body.setAttribute("tabindex", "-1");
+      document.body.focus();
+    }
 
     // 호버 효과 추가
     document.addEventListener("mouseover", this.boundHandleMouseOver, true);
@@ -88,9 +95,15 @@ class BRIDGENotesCapture {
     }
 
     if (this.boundHandleKeyDown) {
+      document.removeEventListener("keydown", this.boundHandleKeyDown, true);
       window.removeEventListener("keydown", this.boundHandleKeyDown, true);
-      console.log("BRIDGE notes: Keydown listener removed from window");
+      console.log("BRIDGE notes: Keydown listeners removed");
       this.boundHandleKeyDown = null;
+    }
+
+    // body tabindex 제거
+    if (document.body) {
+      document.body.removeAttribute("tabindex");
     }
 
     if (this.boundHandleMouseOver) {
