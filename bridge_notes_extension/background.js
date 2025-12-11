@@ -1,11 +1,41 @@
 // BRIDGE notes - Background Service Worker
 // Phase 1: 기본 메시지 처리 및 Side Panel 관리
 
-// 개발 환경 초기화 (config.local.js가 있으면 자동 설정)
-import './scripts/init-dev.js';
+// 개발 환경 초기화 함수
+async function initDevEnvironment() {
+  try {
+    // config.local.js 파일을 fetch로 읽기
+    const configUrl = chrome.runtime.getURL('config.local.js');
+    const response = await fetch(configUrl);
+
+    if (!response.ok) {
+      throw new Error('Config file not found');
+    }
+
+    const configText = await response.text();
+
+    // WEBHOOK_URL 추출 (정규식 사용)
+    const urlMatch = configText.match(/export\s+const\s+WEBHOOK_URL\s*=\s*["']([^"']+)["']/);
+
+    if (urlMatch && urlMatch[1]) {
+      const webhookUrl = urlMatch[1];
+      // Chrome Storage에 Webhook URL 저장
+      await chrome.storage.local.set({ webhookUrl });
+      console.log('[Dev] Webhook URL configured from config.local.js:', webhookUrl);
+    }
+  } catch (error) {
+    // config.local.js가 없으면 무시 (프로덕션 환경)
+    console.log('[Production] Using backend server for webhook');
+  }
+}
+
+// 개발 환경 초기화 실행
+initDevEnvironment();
 
 // Extension 설치 시
 chrome.runtime.onInstalled.addListener((details) => {
+  // 설치/업데이트 시 개발 환경 재초기화
+  initDevEnvironment();
   if (details.reason === 'install') {
     console.log('BRIDGE notes installed!');
 
