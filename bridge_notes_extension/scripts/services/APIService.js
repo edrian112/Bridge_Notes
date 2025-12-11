@@ -106,7 +106,11 @@ export class APIService {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        // 디버깅: 응답 본문 확인
+        const responseText = await response.text();
+        console.log("Raw response from n8n:", responseText);
+
+        const data = JSON.parse(responseText);
 
         if (!data.success) {
           throw new Error(data.message || "AI 처리 실패");
