@@ -3,7 +3,7 @@
  * 모든 UI를 항상 표시하고 disabled 속성으로 제어
  */
 export class ResultArea {
-  constructor(toast = null, errorHandler = null, settings = null, apiService = null, cacheService = null) {
+  constructor(toast = null, errorHandler = null, settings = null, apiService = null, cacheService = null, historyService = null) {
     // 기존 요소들
     this.resultArea = document.getElementById("resultArea");
     this.emptyState = document.getElementById("emptyState");
@@ -26,6 +26,7 @@ export class ResultArea {
     this.settings = settings;
     this.apiService = apiService; // Phase 2: API Service for n8n integration
     this.cacheService = cacheService; // Cache Service for result caching
+    this.historyService = historyService; // History Service for note history
 
     // 워크플로우 상태
     this.currentStep = 0; // 0: empty, 1: text+template, 2: result+tone, 3: final
@@ -66,6 +67,11 @@ export class ResultArea {
         this.copyToClipboard();
       });
     }
+
+    // 히스토리 항목 선택 이벤트 리스너
+    document.addEventListener('historyItemSelected', (e) => {
+      this.loadFromHistory(e.detail);
+    });
 
     // 재생성 버튼 클릭 이벤트
     if (this.regenerateBtn) {
@@ -273,7 +279,7 @@ export class ResultArea {
   /**
    * 최종 결과만 표시 (processedText는 표시하지 않음)
    */
-  showFinalResult() {
+  async showFinalResult() {
     console.log("최종 결과 표시");
     this.currentStep = 3;
 
@@ -296,6 +302,37 @@ export class ResultArea {
     // 복사 버튼 활성화
     if (this.copyBtn) {
       this.copyBtn.disabled = false;
+    }
+
+    // 히스토리에 저장
+    await this.saveToHistory();
+  }
+
+  /**
+   * 히스토리에 결과 저장
+   */
+  async saveToHistory() {
+    if (!this.historyService) return;
+
+    try {
+      await this.historyService.addToHistory({
+        originalText: this.capturedText,
+        processedText: this.finalText,
+        template: this.selectedTemplate,
+        tone: this.selectedTone,
+        metadata: {
+          step3Result: this.step3Result
+        }
+      });
+
+      // 히스토리 새로고침 이벤트 발생
+      const event = new CustomEvent('historyUpdated');
+      document.dispatchEvent(event);
+
+      console.log('Saved to history');
+    } catch (error) {
+      console.error('Failed to save to history:', error);
+      // 히스토리 저장 실패는 치명적이지 않으므로 에러 표시 안 함
     }
   }
 
@@ -497,6 +534,65 @@ ${this.processedText}
 추가적인 문의사항이 있으시면 언제든지 연락 주시기 바랍니다.
 
 감사합니다.`;
+    }
+  }
+
+  /**
+   * 히스토리에서 항목 불러오기
+   * @param {Object} item - 히스토리 항목
+   */
+  loadFromHistory(item) {
+    console.log('Loading from history:', item);
+
+    // 상태 복원
+    this.capturedText = item.originalText;
+    this.finalText = item.processedText;
+    this.selectedTemplate = item.template || 'insight';
+    this.selectedTone = item.tone || 'friendly';
+    this.step3Result = item.metadata?.step3Result || '';
+    this.currentStep = 3;
+
+    // 빈 상태 숨기기
+    if (this.emptyState) {
+      this.emptyState.style.display = 'none';
+    }
+    if (this.resultContent) {
+      this.resultContent.style.display = 'block';
+    }
+
+    // 원본 텍스트 표시
+    if (this.originalText) {
+      this.originalText.value = this.capturedText;
+      this.originalText.disabled = false;
+    }
+
+    // 최종 결과 텍스트 표시
+    if (this.resultText) {
+      this.resultText.value = this.finalText;
+      this.resultText.disabled = false;
+    }
+
+    // 어조 버튼 상태 업데이트
+    this.toneButtons.forEach((btn) => {
+      const tone = btn.getAttribute('data-tone');
+      if (tone === this.selectedTone) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+      btn.disabled = false;
+    });
+
+    // 복사 버튼 활성화
+    if (this.copyBtn) {
+      this.copyBtn.disabled = false;
+    }
+    if (this.copyOriginalBtn) {
+      this.copyOriginalBtn.disabled = false;
+    }
+
+    if (this.toast) {
+      this.toast.success('히스토리에서 불러왔습니다');
     }
   }
 }

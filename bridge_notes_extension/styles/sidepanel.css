@@ -762,17 +762,30 @@ body {
 }
 
 .history-empty {
-  text-align: center;
-  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.history-empty .empty-icon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+.history-empty .empty-text {
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .history-item {
+  position: relative;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 12px;
+  padding: 12px 40px 12px 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -788,33 +801,25 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
+  gap: 8px;
 }
 
-.history-item-time {
+.history-time {
   font-size: 11px;
   color: #9ca3af;
+  font-weight: 500;
 }
 
-.history-item-delete {
-  background: none;
-  border: none;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 4px;
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.2s;
+.history-meta {
+  font-size: 10px;
+  color: #667eea;
+  background: #f0f4ff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
 }
 
-.history-item:hover .history-item-delete {
-  opacity: 1;
-}
-
-.history-item-delete:hover {
-  color: #dc2626;
-}
-
-.history-item-preview {
+.history-preview {
   font-size: 13px;
   color: #6b7280;
   line-height: 1.5;
@@ -823,6 +828,29 @@ body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.history-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.history-item:hover .history-delete-btn {
+  opacity: 1;
+}
+
+.history-delete-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 /* ===========================
@@ -1476,11 +1504,6 @@ body.dark-mode .history-title {
   color: #e5e7eb;
 }
 
-body.dark-mode .history-count {
-  background: #374151;
-  color: #9ca3af;
-}
-
 body.dark-mode .history-item {
   background: #1f1f1f;
   border-color: #374151;
@@ -1491,15 +1514,24 @@ body.dark-mode .history-item:hover {
   background: #262626;
 }
 
-body.dark-mode .history-item-time {
+body.dark-mode .history-time {
   color: #6b7280;
 }
 
-body.dark-mode .history-item-preview {
+body.dark-mode .history-meta {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.1);
+}
+
+body.dark-mode .history-preview {
   color: #9ca3af;
 }
 
 body.dark-mode .history-empty {
+  color: #6b7280;
+}
+
+body.dark-mode .history-empty .empty-text {
   color: #6b7280;
 }
 

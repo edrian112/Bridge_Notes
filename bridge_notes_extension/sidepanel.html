@@ -120,11 +120,11 @@
         <div class="tab-overlay-content">
           <!-- 히스토리 탭 -->
           <div id="historyTab" class="main-tab-pane">
-            <div class="history-section">
+            <div id="historySection" class="history-section">
               <div class="history-header">
                 <span class="history-title">📋 히스토리</span>
                 <button
-                  id="clearAllHistoryBtn"
+                  id="clearHistoryBtn"
                   class="clear-all-btn"
                   title="전체 삭제"
                 >
@@ -132,8 +132,10 @@
                   <span>전체삭제</span>
                 </button>
               </div>
-              <div id="historyList" class="history-list">
-                <div class="history-empty">아직 캡처한 내용이 없습니다</div>
+              <div id="historyList" class="history-list"></div>
+              <div id="historyEmpty" class="history-empty" style="display: flex;">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">아직 저장된 노트가 없습니다</div>
               </div>
             </div>
           </div>

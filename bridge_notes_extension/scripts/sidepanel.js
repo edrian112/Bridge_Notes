@@ -12,6 +12,7 @@ import { TabNavigation } from "./components/TabNavigation.js";
 import { Pricing } from "./components/Pricing.js";
 import { APIService } from "./services/APIService.js";
 import { CacheService } from "./services/CacheService.js";
+import { HistoryService } from "./services/HistoryService.js";
 
 class BRIDGENotesSidePanel {
   constructor() {
@@ -28,6 +29,9 @@ class BRIDGENotesSidePanel {
     // Cache Service
     this.cacheService = new CacheService();
 
+    // History Service
+    this.historyService = new HistoryService();
+
     this.settings = new Settings(
       this.toast,
       this.errorHandler,
@@ -41,17 +45,17 @@ class BRIDGENotesSidePanel {
       this.errorHandler,
       this.settings,
       this.apiService, // Phase 2: ResultArea에 apiService 전달
-      this.cacheService // Cache Service 전달
+      this.cacheService, // Cache Service 전달
+      this.historyService // History Service 전달
     );
 
     // 탭 네비게이션 (History보다 먼저 생성)
     this.tabNavigation = new TabNavigation();
 
-    // 히스토리 (tabNavigation 전달)
+    // 히스토리 (historyService 전달)
     this.history = new History(
-      (text) => this.loadFromHistory(text),
-      this.errorHandler,
-      this.tabNavigation
+      this.historyService,
+      this.toast
     );
 
     // 과금 페이지
@@ -77,6 +81,14 @@ class BRIDGENotesSidePanel {
   async init() {
     // Phase 2: API Service 초기화
     await this.apiService.init();
+
+    // 히스토리 초기 렌더링
+    await this.history.render();
+
+    // 히스토리 업데이트 이벤트 리스너
+    document.addEventListener('historyUpdated', async () => {
+      await this.history.refresh();
+    });
 
     // 이벤트 리스너 등록
     this.startCaptureBtn?.addEventListener("click", () => this.startCapture());
@@ -265,14 +277,6 @@ class BRIDGENotesSidePanel {
     } catch (error) {
       this.errorHandler.handle(error, "saveToHistory");
     }
-  }
-
-  /**
-   * 히스토리에서 캡처 불러오기
-   */
-  loadFromHistory(text) {
-    this.resultArea.show(text);
-    this.toast.success("이전 캡처를 불러왔습니다!");
   }
 
   /**
