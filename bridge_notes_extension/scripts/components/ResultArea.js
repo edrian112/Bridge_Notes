@@ -152,7 +152,54 @@ export class ResultArea {
     this.selectedTemplate = "insight";
 
     await this.delay(300);
-    await this.processWithAI();
+
+    // AI 정리 기능 사용 여부 확인
+    if (this.settings && this.settings.currentSettings.useAiProcessing === false) {
+      // AI 처리 없이 원본만 표시
+      this.showCaptureOnly();
+    } else {
+      // AI 처리 실행
+      await this.processWithAI();
+    }
+  }
+
+  /**
+   * AI 처리 없이 캡처만 표시
+   */
+  showCaptureOnly() {
+    console.log("AI 처리 비활성화 - 원본만 표시");
+
+    // 로딩 숨김
+    this.hideLoading();
+
+    // 결과 영역 숨김
+    if (this.resultText) {
+      this.resultText.style.display = "none";
+    }
+    if (this.toneSelection) {
+      this.toneSelection.style.display = "none";
+    }
+    if (this.copyBtn) {
+      this.copyBtn.style.display = "none";
+    }
+    if (this.regenerateBtn) {
+      this.regenerateBtn.style.display = "none";
+    }
+
+    // 구분선 및 액션 버튼 영역 숨김
+    const dividers = document.querySelectorAll('.divider');
+    if (dividers.length > 0) {
+      dividers[0].style.display = "none"; // 첫 번째 구분선 숨김
+    }
+
+    const resultActions = document.querySelector('.result-actions');
+    if (resultActions) {
+      resultActions.style.display = "none";
+    }
+
+    if (this.toast) {
+      this.toast.info("캡처 완료 (AI 정리 미사용)");
+    }
   }
 
   /**

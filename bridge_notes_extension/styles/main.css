@@ -1,0 +1,22 @@
+/* =========================
+   BRIDGE Notes - Main Stylesheet
+   Modularized CSS Architecture
+   ========================= */
+
+/* Base Styles */
+@import url('base.css');
+
+/* Component Styles */
+@import url('components/header.css');
+@import url('components/button.css');
+@import url('components/footer.css');
+@import url('components/toast.css');
+@import url('components/empty-state.css');
+@import url('components/result-area.css');
+@import url('components/history.css');
+@import url('components/settings.css');
+@import url('components/tabs.css');
+@import url('components/pricing.css');
+
+/* Theme Styles */
+@import url('themes/dark-mode.css');

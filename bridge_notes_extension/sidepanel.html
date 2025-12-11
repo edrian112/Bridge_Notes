@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BRIDGE notes</title>
-    <link rel="stylesheet" href="styles/sidepanel.css" />
+    <link rel="stylesheet" href="styles/main.css" />
   </head>
   <body>
     <div class="container">
@@ -42,6 +42,20 @@
             <div class="empty-state-description">
               위의 "범위 선택 시작" 버튼을 눌러<br />
               AI 대화 내용을 캡처해보세요
+            </div>
+
+            <!-- 어조 미리 선택 -->
+            <div class="empty-tone-selection">
+              <div class="empty-tone-buttons">
+                <button class="empty-tone-btn active" data-tone="friendly">
+                  <span class="tone-icon">😊</span>
+                  <span class="tone-name">개인화</span>
+                </button>
+                <button class="empty-tone-btn" data-tone="formal">
+                  <span class="tone-icon">🎩</span>
+                  <span class="tone-name">전문화</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -250,6 +264,16 @@
                 <option value="dark">다크 모드</option>
               </select>
             </div>
+
+            <div class="settings-item">
+              <label class="settings-label">
+                <span class="settings-label-text">AI 정리 사용</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="checkbox" id="useAiProcessingSetting" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
 
           <!-- 고급 설정 -->
@@ -355,6 +379,21 @@
                 Google Gemini
               </p>
               <p class="settings-info-copyright">Product by BRIDGE</p>
+            </div>
+          </div>
+
+          <!-- 개발자 도구 (개발 환경 전용) -->
+          <div class="settings-section" id="devToolsSection" style="display: none;">
+            <h3 class="settings-section-title">🛠️ 개발자 도구</h3>
+
+            <div class="dev-tools">
+              <p class="dev-tools-desc">플랜 구매 시뮬레이션 (개발 전용)</p>
+              <div class="dev-plan-buttons">
+                <button id="devPlanFree" class="dev-plan-btn">Free (5회)</button>
+                <button id="devPlanBasic30" class="dev-plan-btn">Basic30 (30회)</button>
+                <button id="devPlanStandard100" class="dev-plan-btn">Standard100 (100회)</button>
+                <button id="devPlanMax" class="dev-plan-btn">MAX (무제한)</button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,0 +1,129 @@
+/* ===========================
+   메인 탭 네비게이션 (하단 고정)
+   =========================== */
+
+.main-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  position: relative;
+  z-index: 10;
+}
+
+.main-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: white;
+  border: none;
+  border-right: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.main-tab-btn:last-child {
+  border-right: none;
+}
+
+.main-tab-btn:hover {
+  background: #f9fafb;
+  color: #667eea;
+}
+
+.main-tab-btn.active {
+  color: #667eea;
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.main-tab-btn .tab-icon {
+  font-size: 20px;
+}
+
+.main-tab-btn .tab-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.main-tab-btn .tab-label {
+  font-size: 11px;
+}
+
+/* 탭 오버레이 (하단에서 위로 슬라이드) */
+.tab-overlay {
+  position: fixed;
+  top: 79px; /* header 높이 */
+  left: 0;
+  right: 0;
+  bottom: 132px; /* footer(72px) + main-tabs(60px) */
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 9;
+  overflow-y: auto;
+  display: none;
+}
+
+.tab-overlay.active {
+  transform: translateY(0);
+  display: block;
+}
+
+.tab-overlay-content {
+  height: 100%;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.main-tab-pane {
+  display: none;
+  height: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.main-tab-pane.active {
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 오버레이 스크롤바 */
+.tab-overlay::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tab-overlay::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.tab-overlay::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.tab-overlay::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+

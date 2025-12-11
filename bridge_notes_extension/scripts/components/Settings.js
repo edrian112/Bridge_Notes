@@ -17,6 +17,7 @@ export class Settings {
     // 설정 입력 요소
     this.languageSetting = document.getElementById('languageSetting');
     this.themeModeSetting = document.getElementById('themeModeSetting');
+    this.useAiProcessingSetting = document.getElementById('useAiProcessingSetting');
 
     // 고급 설정 요소
     this.advancedSettingsToggle = document.getElementById('advancedSettingsToggle');
@@ -37,6 +38,7 @@ export class Settings {
       language: 'ko', // 'ko' | 'en'
       shiftClickMode: 'div', // 'div' | 'text' - Shift+클릭 동작
       themeMode: 'system', // 'system' | 'light' | 'dark' - 테마 모드
+      useAiProcessing: true, // AI 정리 기능 사용 여부
       isPaidPlan: false, // 플랜 상태 (false: 프리, true: 유료)
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
@@ -145,6 +147,7 @@ export class Settings {
   renderSettings() {
     this.languageSetting.value = this.currentSettings.language;
     this.themeModeSetting.value = this.currentSettings.themeMode;
+    this.useAiProcessingSetting.checked = this.currentSettings.useAiProcessing !== false;
 
     // 고급 설정
     this.shiftClickModeSetting.value = this.currentSettings.shiftClickMode;
@@ -233,6 +236,7 @@ export class Settings {
       language: this.languageSetting.value,
       shiftClickMode: this.shiftClickModeSetting.value,
       themeMode: this.themeModeSetting.value,
+      useAiProcessing: this.useAiProcessingSetting.checked,
       isPaidPlan: this.currentSettings.isPaidPlan,
       planType: this.currentSettings.planType,
       remainingUsage: this.currentSettings.remainingUsage,
