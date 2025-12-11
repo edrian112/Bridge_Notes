@@ -33,6 +33,7 @@ export class ResultArea {
     this.processedText = "";
     this.selectedTone = "";
     this.finalText = "";
+    this.step3Result = ""; // Step 3 (Claude Draft) 결과 캐싱
 
     // Phase 2: n8n Webhook 하드코딩되어 있으므로 Mock 모드 비활성화
     this.useMockData = false;
@@ -86,7 +87,6 @@ export class ResultArea {
    * Step 1: 캡처된 텍스트 표시 및 자동 처리 시작
    */
   async show(text) {
-    console.log("ResultArea.show() - Step 1 시작");
     this.capturedText = text;
     this.currentStep = 1;
 
@@ -122,9 +122,8 @@ export class ResultArea {
 
     // 템플릿은 'insight'로 고정
     this.selectedTemplate = "insight";
-    console.log("템플릿 고정: insight - 자동 AI 처리 시작");
 
-    await this.delay(300); // 짧은 지연
+    await this.delay(300);
     await this.processWithAI();
   }
 
@@ -181,8 +180,6 @@ export class ResultArea {
    * 전체 AI 처리 (템플릿 → 어조 적용, 최종 결과만 표시)
    */
   async processWithAI() {
-    console.log("AI 처리 시작 - 최종 결과 생성까지 자동 진행");
-
     // 로딩 표시
     this.showLoading("AI가 내용을 정리하고 있습니다...");
 
@@ -205,12 +202,10 @@ export class ResultArea {
       // 전체 파이프라인 1번 호출 (n8n이 Step 1~4 전부 처리)
       if (this.useMockData) {
         // Mock Data 사용
-        console.log("[Mock Mode] Using mock data for full pipeline");
         await this.delay(3000); // 전체 처리 시뮬레이션
         this.finalText = this.getMockFinalText(this.selectedTone);
       } else {
         // Real API 호출 - 1번에 모든 Step 처리
-        console.log("[API Mode] Calling n8n webhook for full pipeline (Step 1-4)");
         const result = await this.apiService.process({
           text: this.capturedText,
           action: "full-process", // n8n이 전체 Step 1~4 실행
@@ -218,6 +213,7 @@ export class ResultArea {
           tone: this.selectedTone,
         });
         this.finalText = result.result;
+        this.step3Result = result.step3Result || ""; // Step 3 결과 캐싱
       }
 
       // 최종 결과만 표시
@@ -287,11 +283,9 @@ export class ResultArea {
   }
 
   /**
-   * 재생성: 선택된 톤으로 결과 재생성 (템플릿은 'insight' 고정)
+   * 재생성: 선택된 톤으로 결과 재생성 (Step 4만 실행)
    */
   async regenerate() {
-    console.log("재생성 시작");
-
     // 톤이 선택되었는지 확인
     if (!this.selectedTone) {
       if (this.toast) {
@@ -300,8 +294,38 @@ export class ResultArea {
       return;
     }
 
-    // processWithAI 호출하여 재생성
-    await this.processWithAI();
+    // Step 3 결과가 없으면 전체 처리
+    if (!this.step3Result) {
+      await this.processWithAI();
+      return;
+    }
+
+    this.showLoading("어조를 조정하고 있습니다...");
+
+    try {
+      // Step 4만 실행 (tone-adjust-only)
+      const result = await this.apiService.process({
+        text: this.step3Result, // 하위 호환용 (폴백)
+        step3Result: this.step3Result, // 명시적으로 Step 3 결과 전달
+        action: "tone-adjust-only", // Step 4만 실행
+        tone: this.selectedTone,
+      });
+
+      this.finalText = result.result;
+      this.showFinalResult();
+    } catch (error) {
+      this.hideLoading();
+
+      if (this.toast) {
+        this.toast.warning("어조 조정에 실패했습니다");
+      }
+
+      if (this.errorHandler) {
+        this.errorHandler.handle(error, "regenerate", {
+          customMessage: "어조 조정 실패",
+        });
+      }
+    }
   }
 
   /**

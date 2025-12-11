@@ -51,7 +51,7 @@ export class APIService {
    * @param {string} options.tone - "friendly" | "formal"
    * @returns {Promise<Object>} { success, result, metadata }
    */
-  async process({ text, action, template = "insight", tone = "friendly" }) {
+  async process({ text, action, template = "insight", tone = "friendly", step3Result }) {
     if (!this.webhookUrl) {
       throw new Error("Webhook URL이 설정되지 않았습니다. Settings에서 URL을 입력해주세요.");
     }
@@ -67,7 +67,10 @@ export class APIService {
       tone,
     };
 
-    console.log("API Request:", { action, template, tone, textLength: text.length });
+    // tone-adjust-only 때만 step3Result 같이 전송
+    if (action === "tone-adjust-only" && step3Result) {
+      requestBody.step3Result = step3Result;
+    }
 
     // 재시도 로직 포함
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -106,29 +109,22 @@ export class APIService {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // 디버깅: 응답 본문 확인
         const responseText = await response.text();
-        console.log("Raw response from n8n:", responseText);
-
         const data = JSON.parse(responseText);
 
         if (!data.success) {
           throw new Error(data.message || "AI 처리 실패");
         }
 
-        // n8n Response 형식: { success, note: { content, metadata } }
+        // n8n Response 형식: { success, result, step3Result, metadata }
         const noteContent = data.note?.content || data.result; // fallback 지원
         const noteMetadata = data.note?.metadata || data.metadata || {};
-
-        console.log("API Response:", {
-          success: data.success,
-          resultLength: noteContent?.length,
-          metadata: noteMetadata,
-        });
+        const step3Result = data.step3Result || ""; // Step 3 결과 캐싱용
 
         return {
           success: true,
           result: noteContent,
+          step3Result: step3Result, // Extension에서 캐싱용
           metadata: noteMetadata,
         };
       } catch (error) {
