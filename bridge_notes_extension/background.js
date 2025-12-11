@@ -1,6 +1,9 @@
 // BRIDGE notes - Background Service Worker
 // Phase 1: 기본 메시지 처리 및 Side Panel 관리
 
+// 개발 환경 초기화 (config.local.js가 있으면 자동 설정)
+import './scripts/init-dev.js';
+
 // Extension 설치 시
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
