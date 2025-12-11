@@ -3,7 +3,7 @@
  * 모든 UI를 항상 표시하고 disabled 속성으로 제어
  */
 export class ResultArea {
-  constructor(toast = null, errorHandler = null, settings = null, apiService = null) {
+  constructor(toast = null, errorHandler = null, settings = null, apiService = null, cacheService = null) {
     // 기존 요소들
     this.resultArea = document.getElementById("resultArea");
     this.emptyState = document.getElementById("emptyState");
@@ -21,10 +21,14 @@ export class ResultArea {
     this.copyBtn = document.getElementById("copyResultBtn");
     this.regenerateBtn = document.getElementById("regenerateBtn");
 
+    // Progress steps
+    this.progressSteps = document.querySelectorAll(".progress-step");
+
     this.toast = toast;
     this.errorHandler = errorHandler;
     this.settings = settings;
     this.apiService = apiService; // Phase 2: API Service for n8n integration
+    this.cacheService = cacheService; // Cache Service for result caching
 
     // 워크플로우 상태
     this.currentStep = 0; // 0: empty, 1: text+template, 2: result+tone, 3: final
@@ -180,9 +184,6 @@ export class ResultArea {
    * 전체 AI 처리 (템플릿 → 어조 적용, 최종 결과만 표시)
    */
   async processWithAI() {
-    // 로딩 표시
-    this.showLoading("AI가 내용을 정리하고 있습니다...");
-
     try {
       // 톤 설정 (없으면 기본값 사용)
       if (!this.selectedTone) {
@@ -199,21 +200,64 @@ export class ResultArea {
         }
       });
 
+      // 캐시 확인
+      if (this.cacheService) {
+        const cached = await this.cacheService.get(
+          this.capturedText,
+          this.selectedTemplate,
+          this.selectedTone
+        );
+
+        if (cached) {
+          // 캐시 히트 - 즉시 결과 표시
+          this.finalText = cached.result;
+          this.step3Result = cached.step3Result || "";
+          this.showFinalResult();
+
+          if (this.toast) {
+            this.toast.success("캐시된 결과를 불러왔습니다");
+          }
+          return;
+        }
+      }
+
+      // 캐시 미스 - API 호출
+      this.showLoading();
+
       // 전체 파이프라인 1번 호출 (n8n이 Step 1~4 전부 처리)
       if (this.useMockData) {
         // Mock Data 사용
-        await this.delay(3000); // 전체 처리 시뮬레이션
+        await this.simulateProgress();
         this.finalText = this.getMockFinalText(this.selectedTone);
       } else {
-        // Real API 호출 - 1번에 모든 Step 처리
+        // Real API 호출 with progress simulation
+        const progressPromise = this.simulateProgress();
+
         const result = await this.apiService.process({
           text: this.capturedText,
           action: "full-process", // n8n이 전체 Step 1~4 실행
           template: this.selectedTemplate,
           tone: this.selectedTone,
         });
+
+        await progressPromise; // progress 완료 대기
+
         this.finalText = result.result;
         this.step3Result = result.step3Result || ""; // Step 3 결과 캐싱
+
+        // 캐시에 저장
+        if (this.cacheService) {
+          await this.cacheService.set(
+            this.capturedText,
+            this.selectedTemplate,
+            this.selectedTone,
+            {
+              result: this.finalText,
+              step3Result: this.step3Result,
+              metadata: result.metadata
+            }
+          );
+        }
       }
 
       // 최종 결과만 표시
@@ -370,12 +414,9 @@ export class ResultArea {
   /**
    * 로딩 표시
    */
-  showLoading(message = "AI가 내용을 정리하는 중입니다...") {
+  showLoading() {
     if (this.loadingState) {
-      const loadingText = this.loadingState.querySelector(".loading-text");
-      if (loadingText) {
-        loadingText.textContent = message;
-      }
+      this.resetProgress(); // Progress 초기화
       this.loadingState.style.display = "flex";
     }
     if (this.resultText) {
@@ -466,5 +507,50 @@ ${this.processedText}
 
 감사합니다.`;
     }
+  }
+
+  /**
+   * Progress 시뮬레이션 (4단계)
+   */
+  async simulateProgress() {
+    const steps = [
+      { index: 0, duration: 3000 },  // 대화 분석 중... (3초)
+      { index: 1, duration: 3000 },  // 내용 정리 중... (3초)
+      { index: 2, duration: 3000 },  // 표현 다듬는 중... (3초)
+      { index: 3, duration: 3000 },  // 어조 조정 중... (3초)
+    ];
+
+    for (const step of steps) {
+      this.updateProgressStep(step.index);
+      await this.delay(step.duration);
+    }
+  }
+
+  /**
+   * Progress step 업데이트
+   * @param {number} stepIndex - 현재 활성화할 step (0-3)
+   */
+  updateProgressStep(stepIndex) {
+    this.progressSteps.forEach((step, index) => {
+      step.classList.remove('active', 'completed');
+
+      if (index < stepIndex) {
+        step.classList.add('completed');
+      } else if (index === stepIndex) {
+        step.classList.add('active');
+      }
+    });
+  }
+
+  /**
+   * Progress 초기화
+   */
+  resetProgress() {
+    this.progressSteps.forEach((step, index) => {
+      step.classList.remove('active', 'completed');
+      if (index === 0) {
+        step.classList.add('active');
+      }
+    });
   }
 }

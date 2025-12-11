@@ -678,7 +678,7 @@ body {
   padding: 60px 20px;
   background: #f9fafb;
   border-radius: 12px;
-  gap: 16px;
+  gap: 20px;
 }
 
 .loading-spinner {
@@ -696,10 +696,32 @@ body {
   }
 }
 
-.loading-text {
-  color: #6b7280;
+.loading-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.progress-step {
+  color: #9ca3af;
   font-size: 14px;
+  font-weight: 400;
+  text-align: center;
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  color: #667eea;
   font-weight: 500;
+  opacity: 1;
+}
+
+.progress-step.completed {
+  color: #6b7280;
+  opacity: 0.6;
 }
 
 /* 히스토리 섹션 */
@@ -1579,7 +1601,15 @@ body.dark-mode .loading-state {
   background: #1f1f1f;
 }
 
-body.dark-mode .loading-text {
+body.dark-mode .progress-step {
+  color: #6b7280;
+}
+
+body.dark-mode .progress-step.active {
+  color: #818cf8;
+}
+
+body.dark-mode .progress-step.completed {
   color: #9ca3af;
 }
 
@@ -2356,13 +2386,6 @@ body.dark-mode .action-button.secondary:hover {
   border-color: #6b7280;
 }
 
-body.dark-mode .loading-state {
-  background: transparent;
-}
-
-body.dark-mode .loading-text {
-  color: #d1d5db;
-}
 
 /* 다크 모드 - 복사 버튼 */
 body.dark-mode .copy-text-btn {

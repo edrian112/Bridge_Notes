@@ -11,6 +11,7 @@ import { Settings } from "./components/Settings.js";
 import { TabNavigation } from "./components/TabNavigation.js";
 import { Pricing } from "./components/Pricing.js";
 import { APIService } from "./services/APIService.js";
+import { CacheService } from "./services/CacheService.js";
 
 class BRIDGENotesSidePanel {
   constructor() {
@@ -24,6 +25,9 @@ class BRIDGENotesSidePanel {
     // Phase 2: API Service
     this.apiService = new APIService();
 
+    // Cache Service
+    this.cacheService = new CacheService();
+
     this.settings = new Settings(
       this.toast,
       this.errorHandler,
@@ -36,7 +40,8 @@ class BRIDGENotesSidePanel {
       this.toast,
       this.errorHandler,
       this.settings,
-      this.apiService // Phase 2: ResultArea에 apiService 전달
+      this.apiService, // Phase 2: ResultArea에 apiService 전달
+      this.cacheService // Cache Service 전달
     );
 
     // 탭 네비게이션 (History보다 먼저 생성)
