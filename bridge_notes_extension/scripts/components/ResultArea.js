@@ -34,8 +34,8 @@ export class ResultArea {
     this.selectedTone = "";
     this.finalText = "";
 
-    // Phase 2: Mock 모드 (Webhook URL 미설정 시 true)
-    this.useMockData = true;
+    // Phase 2: n8n Webhook 하드코딩되어 있으므로 Mock 모드 비활성화
+    this.useMockData = false;
 
     this.init();
   }
@@ -185,9 +185,6 @@ export class ResultArea {
 
     // 로딩 표시
     this.showLoading("AI가 내용을 정리하고 있습니다...");
-
-    // Mock 모드 체크
-    this.useMockData = !this.apiService || !this.apiService.isConfigured();
 
     try {
       // Step 1: 템플릿 적용 (대화 정리)

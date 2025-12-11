@@ -4,37 +4,37 @@
  */
 export class APIService {
   constructor() {
+    // n8n Webhook URL (환경 설정에서 로드)
     this.webhookUrl = null;
-    this.timeout = 30000; // 30초
+    this.timeout = 300000; // 5분 (긴 대화 처리 시간 고려)
     this.maxRetries = 3;
   }
 
   /**
-   * Chrome Storage에서 Webhook URL 불러오기
+   * APIService 초기화 - Webhook URL 로드
    */
   async init() {
     try {
-      const result = await chrome.storage.sync.get(["webhookUrl"]);
+      // Chrome Storage에서 Webhook URL 로드
+      const result = await chrome.storage.local.get(['webhookUrl']);
       this.webhookUrl = result.webhookUrl || null;
-      console.log("APIService initialized:", this.webhookUrl ? "URL configured" : "No URL");
+      console.log("APIService initialized:", this.webhookUrl ? "Webhook configured" : "No webhook URL");
     } catch (error) {
-      console.error("Failed to initialize APIService:", error);
+      console.error("Failed to load webhook URL:", error);
       this.webhookUrl = null;
     }
   }
 
   /**
-   * Webhook URL 설정 및 저장
+   * Webhook URL 설정 (개발/배포 환경 분리용)
    * @param {string} url - n8n Webhook URL
    */
   async setWebhookUrl(url) {
     try {
-      // URL 형식 검증
-      new URL(url);
-
+      new URL(url); // URL 검증
       this.webhookUrl = url;
-      await chrome.storage.sync.set({ webhookUrl: url });
-      console.log("Webhook URL saved:", url);
+      await chrome.storage.local.set({ webhookUrl: url });
+      console.log("Webhook URL configured");
       return true;
     } catch (error) {
       console.error("Invalid webhook URL:", error);
@@ -112,16 +112,20 @@ export class APIService {
           throw new Error(data.message || "AI 처리 실패");
         }
 
+        // n8n Response 형식: { success, note: { content, metadata } }
+        const noteContent = data.note?.content || data.result; // fallback 지원
+        const noteMetadata = data.note?.metadata || data.metadata || {};
+
         console.log("API Response:", {
           success: data.success,
-          resultLength: data.result?.length,
-          metadata: data.metadata,
+          resultLength: noteContent?.length,
+          metadata: noteMetadata,
         });
 
         return {
           success: true,
-          result: data.result,
-          metadata: data.metadata || {},
+          result: noteContent,
+          metadata: noteMetadata,
         };
       } catch (error) {
         // Timeout 에러
@@ -132,7 +136,7 @@ export class APIService {
             await this.delay(1000 * attempt);
             continue;
           }
-          throw new Error("요청 시간 초과 (30초). 다시 시도해주세요.");
+          throw new Error("요청 시간 초과 (5분). 다시 시도해주세요.");
         }
 
         // 네트워크 에러
@@ -171,11 +175,6 @@ export class APIService {
    * @returns {Promise<boolean>}
    */
   async healthCheck() {
-    if (!this.webhookUrl) {
-      console.warn("No webhook URL configured for health check");
-      return false;
-    }
-
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -195,21 +194,5 @@ export class APIService {
       console.error("Health check failed:", error);
       return false;
     }
-  }
-
-  /**
-   * Webhook URL 설정 여부 확인
-   * @returns {boolean}
-   */
-  isConfigured() {
-    return this.webhookUrl !== null && this.webhookUrl.trim().length > 0;
-  }
-
-  /**
-   * 현재 Webhook URL 가져오기
-   * @returns {string|null}
-   */
-  getWebhookUrl() {
-    return this.webhookUrl;
   }
 }

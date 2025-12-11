@@ -18,6 +18,7 @@ Thumbs.db
 *.pem
 *.key
 credentials.json
+config.local.js
 
 # 로그 파일
 *.log

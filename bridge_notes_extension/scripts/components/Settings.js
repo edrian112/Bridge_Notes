@@ -47,7 +47,7 @@ export class Settings {
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
       googleUser: null, // 구글 사용자 정보
-      webhookUrl: 'http://161.118.209.89:5678/webhook/bridge-notes', // Phase 2: 우리가 운영하는 n8n Webhook (하드코딩)
+      webhookUrl: '', // Phase 2: n8n Webhook URL (환경별 설정)
       processApiUrl: '', // Standard100+ 플랜: 사용자 입력 AI 주소 (입력 처리용)
       finalApiUrl: '' // Standard100+ 플랜: 사용자 출력 AI 주소 (어조 조정용)
     };
@@ -265,16 +265,6 @@ export class Settings {
 
       // 현재 설정 업데이트
       this.currentSettings = newSettings;
-
-      // Phase 2: Webhook URL을 APIService에 저장 (하드코딩된 값)
-      if (this.apiService && newSettings.webhookUrl) {
-        try {
-          await this.apiService.setWebhookUrl(newSettings.webhookUrl);
-          console.log("Webhook URL updated in APIService");
-        } catch (error) {
-          console.error("Failed to update webhook URL:", error);
-        }
-      }
 
       // 테마 적용
       this.applyTheme(newSettings.darkMode);
