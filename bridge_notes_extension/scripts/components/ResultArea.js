@@ -61,10 +61,17 @@ export class ResultArea {
       });
     });
 
-    // 복사 버튼 클릭 이벤트
+    // 복사 버튼 클릭 이벤트 (AI 정리 결과 복사)
     if (this.copyBtn) {
       this.copyBtn.addEventListener("click", () => {
-        this.copyToClipboard();
+        this.copyResultText();
+      });
+    }
+
+    // 원본 복사 버튼 클릭 이벤트
+    if (this.copyOriginalBtn) {
+      this.copyOriginalBtn.addEventListener("click", () => {
+        this.copyOriginalText();
       });
     }
 
@@ -110,6 +117,11 @@ export class ResultArea {
     // 원문 표시
     if (this.originalText) {
       this.originalText.textContent = text;
+    }
+
+    // 원본 복사 버튼 활성화
+    if (this.copyOriginalBtn) {
+      this.copyOriginalBtn.disabled = false;
     }
 
     // 결과 영역 초기화
@@ -162,6 +174,60 @@ export class ResultArea {
   }
 
   /**
+   * AI 정리 결과 복사
+   */
+  async copyResultText() {
+    try {
+      if (!this.finalText) {
+        if (this.toast) {
+          this.toast.error("복사할 결과가 없습니다");
+        }
+        return;
+      }
+
+      await navigator.clipboard.writeText(this.finalText);
+
+      if (this.toast) {
+        this.toast.success("결과가 클립보드에 복사되었습니다!");
+      }
+    } catch (error) {
+      console.error("결과 복사 실패:", error);
+      if (this.errorHandler) {
+        this.errorHandler.handle(error, "copyResultText", {
+          customMessage: "결과 복사에 실패했습니다",
+        });
+      }
+    }
+  }
+
+  /**
+   * 원본 텍스트 복사
+   */
+  async copyOriginalText() {
+    try {
+      if (!this.capturedText) {
+        if (this.toast) {
+          this.toast.error("복사할 원본이 없습니다");
+        }
+        return;
+      }
+
+      await navigator.clipboard.writeText(this.capturedText);
+
+      if (this.toast) {
+        this.toast.success("원본이 클립보드에 복사되었습니다!");
+      }
+    } catch (error) {
+      console.error("원본 복사 실패:", error);
+      if (this.errorHandler) {
+        this.errorHandler.handle(error, "copyOriginalText", {
+          customMessage: "원본 복사에 실패했습니다",
+        });
+      }
+    }
+  }
+
+  /**
    * 템플릿 선택 (템플릿 탭 제거로 미사용)
    */
   // switchTemplate(template) {
@@ -188,10 +254,9 @@ export class ResultArea {
    */
   async processWithAI() {
     try {
-      // 톤 설정 (없으면 기본값 사용)
+      // 톤 설정 (없으면 기본값: friendly)
       if (!this.selectedTone) {
-        const defaultTone = this.settings?.getSetting("defaultTone") || "friendly";
-        this.selectedTone = defaultTone;
+        this.selectedTone = "friendly";
       }
 
       // 어조 버튼 UI 업데이트
@@ -304,6 +369,9 @@ export class ResultArea {
       this.copyBtn.disabled = false;
     }
 
+    // 자동 복사는 Chrome 정책상 불가 (Document is not focused)
+    // 사용자가 수동으로 복사 버튼 클릭 시, 설정의 copyTarget에 따라 복사됨
+
     // 히스토리에 저장
     await this.saveToHistory();
   }
@@ -396,45 +464,6 @@ export class ResultArea {
       if (this.errorHandler) {
         this.errorHandler.handle(error, "regenerate", {
           customMessage: "어조 조정 실패",
-        });
-      }
-    }
-  }
-
-  /**
-   * 클립보드에 복사
-   */
-  async copyToClipboard() {
-    try {
-      // 설정에서 복사 대상 확인
-      const copyTarget = this.settings?.getSetting('copyTarget') || 'original';
-
-      let textToCopy = "";
-      if (copyTarget === 'original') {
-        // 오리지널 텍스트 복사 (캡처 원문)
-        textToCopy = this.capturedText || "";
-      } else {
-        // 파이널 텍스트 복사 (AI 정리)
-        textToCopy = this.finalText || this.resultText?.value || "";
-      }
-
-      if (!textToCopy) {
-        if (this.toast) {
-          this.toast.error("복사할 내용이 없습니다");
-        }
-        return;
-      }
-
-      await navigator.clipboard.writeText(textToCopy);
-
-      if (this.toast) {
-        this.toast.success("클립보드에 복사되었습니다!");
-      }
-    } catch (error) {
-      console.error("클립보드 복사 실패:", error);
-      if (this.errorHandler) {
-        this.errorHandler.handle(error, "copyToClipboard", {
-          customMessage: "클립보드 복사에 실패했습니다",
         });
       }
     }

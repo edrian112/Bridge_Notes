@@ -272,7 +272,7 @@ body {
 
 /* 결과 영역 */
 .result-area {
-  margin-top: 24px;
+  margin-top: 0;
 }
 
 .result-content {
@@ -474,46 +474,40 @@ body {
 }
 
 .original-text-section {
+  margin-bottom: 0;
+}
+
+/* 원문 복사 버튼 섹션 */
+.original-copy-section {
+  margin-top: 12px;
   margin-bottom: 16px;
 }
 
-/* 섹션 헤더 (라벨 + 복사 버튼) */
-.section-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.section-label {
-  font-size: 12px;
+.copy-original-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
-}
-
-.copy-text-btn {
-  padding: 8px 14px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 13px;
-  font-weight: 600;
-  color: #6b7280;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.copy-text-btn:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+.copy-original-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.copy-text-btn:active {
-  transform: translateY(0);
+.copy-original-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .original-text {
@@ -710,21 +704,16 @@ body {
   background: transparent;
   border-radius: 8px;
   padding: 20px 16px;
+  padding-top: 80px;
   display: flex;
   flex-direction: column;
 }
 
 .history-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 12px;
-}
-
-.history-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
 }
 
 .clear-all-btn {
@@ -759,6 +748,7 @@ body {
   gap: 8px;
   flex: 1;
   overflow-y: auto;
+  padding-top: 4px;
 }
 
 .history-empty {
@@ -1500,10 +1490,6 @@ body.dark-mode .history-section {
   border-color: #374151;
 }
 
-body.dark-mode .history-title {
-  color: #e5e7eb;
-}
-
 body.dark-mode .history-item {
   background: #1f1f1f;
   border-color: #374151;
@@ -1669,25 +1655,54 @@ body.dark-mode .footer-copyright {
 }
 
 /* 토스트 메시지 */
-body.dark-mode .toast {
+body.dark-mode .status-message {
   background: #262626;
   color: #e5e7eb;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
-body.dark-mode .toast.success {
-  background: #065f46;
-  color: #d1fae5;
+body.dark-mode .status-message.success {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.25) 0%,
+    rgba(5, 150, 105, 0.25) 100%
+  );
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 600;
 }
 
-body.dark-mode .toast.error {
-  background: #991b1b;
-  color: #fecaca;
+body.dark-mode .status-message.error {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.25) 0%,
+    rgba(220, 38, 38, 0.25) 100%
+  );
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 600;
 }
 
-body.dark-mode .toast.info {
-  background: #1e40af;
-  color: #dbeafe;
+body.dark-mode .status-message.warning {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.25) 0%,
+    rgba(217, 119, 6, 0.25) 100%
+  );
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-weight: 600;
+}
+
+body.dark-mode .status-message.info {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.25) 0%,
+    rgba(37, 99, 235, 0.25) 100%
+  );
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-weight: 600;
 }
 
 /* 설정 모달 */
@@ -1940,20 +1955,8 @@ body.dark-mode .google-login-btn:hover {
 
 .pricing-wrapper {
   height: 100%;
-  padding: 20px 4px;
+  padding: 80px 4px 20px 4px;
   overflow-y: auto;
-}
-
-.pricing-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.pricing-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
 }
 
 .pricing-subtitle {
@@ -2206,10 +2209,6 @@ body.dark-mode .tab-overlay::-webkit-scrollbar-thumb:hover {
 }
 
 /* 다크 모드 - 과금 페이지 */
-body.dark-mode .pricing-header h2 {
-  color: #f3f4f6;
-}
-
 body.dark-mode .pricing-subtitle {
   color: #9ca3af;
 }
@@ -2367,6 +2366,16 @@ body.dark-mode .final-result-box {
 
 body.dark-mode .result-actions {
   background: transparent;
+}
+
+body.dark-mode .copy-original-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+body.dark-mode .copy-original-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 body.dark-mode .action-button.primary {

@@ -52,10 +52,11 @@ class BRIDGENotesSidePanel {
     // 탭 네비게이션 (History보다 먼저 생성)
     this.tabNavigation = new TabNavigation();
 
-    // 히스토리 (historyService 전달)
+    // 히스토리 (historyService, toast, settings 전달)
     this.history = new History(
       this.historyService,
-      this.toast
+      this.toast,
+      this.settings
     );
 
     // 과금 페이지
@@ -271,7 +272,7 @@ class BRIDGENotesSidePanel {
       }
 
       // 히스토리 리스트 새로고침
-      await this.history.load();
+      await this.history.render();
 
       console.log("Capture saved to history");
     } catch (error) {

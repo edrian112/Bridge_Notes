@@ -3,9 +3,10 @@
  * Phase 2 - 처리된 노트 히스토리 관리
  */
 export class History {
-  constructor(historyService, toast = null) {
+  constructor(historyService, toast = null, settings = null) {
     this.historyService = historyService;
     this.toast = toast;
+    this.settings = settings;
 
     // DOM 요소
     this.historySection = document.getElementById('historySection');
@@ -45,7 +46,11 @@ export class History {
       this.hideEmpty();
       this.historyList.innerHTML = '';
 
-      history.forEach(item => {
+      // 플랜별 노출 개수 제한
+      const maxItems = this.getMaxHistoryItems();
+      const displayHistory = history.slice(0, maxItems);
+
+      displayHistory.forEach(item => {
         const itemElement = this.createHistoryItem(item);
         this.historyList.appendChild(itemElement);
       });
@@ -55,6 +60,24 @@ export class History {
         this.toast.error('히스토리 로딩 실패');
       }
     }
+  }
+
+  /**
+   * 플랜별 최대 히스토리 노출 개수
+   * @returns {number}
+   */
+  getMaxHistoryItems() {
+    if (!this.settings || !this.settings.currentSettings) return 3; // 기본값: Free 플랜
+
+    const currentPlan = this.settings.currentSettings.planType || 'free';
+
+    // Free 플랜: 3개
+    if (currentPlan === 'free') {
+      return 3;
+    }
+
+    // 유료 플랜 (basic30, standard100, max): 10개
+    return 10;
   }
 
   /**

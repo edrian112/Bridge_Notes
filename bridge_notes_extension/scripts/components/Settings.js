@@ -16,10 +16,7 @@ export class Settings {
 
     // 설정 입력 요소
     this.languageSetting = document.getElementById('languageSetting');
-    this.defaultTemplateSetting = document.getElementById('defaultTemplateSetting');
-    this.defaultToneSetting = document.getElementById('defaultToneSetting');
-    this.copyTargetSetting = document.getElementById('copyTargetSetting');
-    this.darkModeSetting = document.getElementById('darkModeSetting');
+    this.themeModeSetting = document.getElementById('themeModeSetting');
 
     // 고급 설정 요소
     this.advancedSettingsToggle = document.getElementById('advancedSettingsToggle');
@@ -38,11 +35,8 @@ export class Settings {
     this.defaultSettings = {
       maxHistory: 3, // 프리 플랜: 3개, 유료 플랜: 10개
       language: 'ko', // 'ko' | 'en'
-      defaultTemplate: 'insight',
-      defaultTone: 'friendly',
-      copyTarget: 'original', // 'original' | 'final' - 클립보드 복사 대상
       shiftClickMode: 'div', // 'div' | 'text' - Shift+클릭 동작
-      darkMode: false,
+      themeMode: 'system', // 'system' | 'light' | 'dark' - 테마 모드
       isPaidPlan: false, // 플랜 상태 (false: 프리, true: 유료)
       planType: 'free', // 'free' | 'basic30' | 'standard100' | 'max'
       remainingUsage: 0, // 잔여 사용 횟수 (월정액은 -1로 표시)
@@ -63,6 +57,14 @@ export class Settings {
 
     // 이벤트 리스너 등록
     this.attachEventListeners();
+
+    // 시스템 테마 변경 감지
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    darkModeMediaQuery.addEventListener('change', (e) => {
+      if (this.currentSettings.themeMode === 'system') {
+        this.applyTheme(e.matches);
+      }
+    });
   }
 
   /**
@@ -96,9 +98,15 @@ export class Settings {
     // 구글 로그인 버튼
     this.googleLoginBtn.addEventListener('click', () => this.handleGoogleLogin());
 
-    // 다크 모드 실시간 적용
-    this.darkModeSetting.addEventListener('change', () => {
-      this.applyTheme(this.darkModeSetting.checked);
+    // 테마 모드 실시간 적용
+    this.themeModeSetting.addEventListener('change', () => {
+      const themeMode = this.themeModeSetting.value;
+      if (themeMode === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.applyTheme(isDark);
+      } else {
+        this.applyTheme(themeMode === 'dark');
+      }
     });
 
     // 고급 설정 토글
@@ -136,10 +144,7 @@ export class Settings {
    */
   renderSettings() {
     this.languageSetting.value = this.currentSettings.language;
-    // defaultTemplate UI 제거됨 (내부적으로 'insight' 고정 사용)
-    this.defaultToneSetting.value = this.currentSettings.defaultTone;
-    this.copyTargetSetting.value = this.currentSettings.copyTarget;
-    this.darkModeSetting.checked = this.currentSettings.darkMode;
+    this.themeModeSetting.value = this.currentSettings.themeMode;
 
     // 고급 설정
     this.shiftClickModeSetting.value = this.currentSettings.shiftClickMode;
@@ -226,11 +231,8 @@ export class Settings {
     return {
       maxHistory: maxHistory,
       language: this.languageSetting.value,
-      defaultTemplate: 'insight', // 템플릿 UI 제거, 'insight'로 고정
-      defaultTone: this.defaultToneSetting.value,
-      copyTarget: this.copyTargetSetting.value,
       shiftClickMode: this.shiftClickModeSetting.value,
-      darkMode: this.darkModeSetting.checked,
+      themeMode: this.themeModeSetting.value,
       isPaidPlan: this.currentSettings.isPaidPlan,
       planType: this.currentSettings.planType,
       remainingUsage: this.currentSettings.remainingUsage,
@@ -267,7 +269,12 @@ export class Settings {
       this.currentSettings = newSettings;
 
       // 테마 적용
-      this.applyTheme(newSettings.darkMode);
+      if (newSettings.themeMode === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.applyTheme(isDark);
+      } else {
+        this.applyTheme(newSettings.themeMode === 'dark');
+      }
 
       // 성공 메시지
       if (this.toast) {
@@ -304,7 +311,12 @@ export class Settings {
       }
 
       // 테마 적용
-      this.applyTheme(this.currentSettings.darkMode);
+      if (this.currentSettings.themeMode === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.applyTheme(isDark);
+      } else {
+        this.applyTheme(this.currentSettings.themeMode === 'dark');
+      }
 
       console.log('Settings loaded:', this.currentSettings);
     } catch (error) {
@@ -430,8 +442,13 @@ export class Settings {
       }
 
       // 테마 설정이 변경된 경우
-      if (key === 'darkMode') {
-        this.applyTheme(value);
+      if (key === 'themeMode') {
+        if (value === 'system') {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          this.applyTheme(isDark);
+        } else {
+          this.applyTheme(value === 'dark');
+        }
       }
 
       console.log(`Setting updated: ${key} = ${value}`);

@@ -49,32 +49,15 @@
           <div id="resultContent" style="display: none">
             <!-- 원문 표시 -->
             <div class="original-text-section">
-              <div class="section-header">
-                <button
-                  id="copyOriginalBtn"
-                  class="copy-text-btn"
-                  title="원문 복사"
-                >
-                  복사
-                </button>
-              </div>
               <div id="originalText" class="original-text"></div>
             </div>
 
-            <div class="divider"></div>
-
-            <!-- 어조 선택 -->
-            <div id="toneSelection" class="tone-selection">
-              <div class="tone-buttons">
-                <button class="tone-btn" data-tone="friendly" disabled>
-                  <span class="tone-icon">😊</span>
-                  <span class="tone-name">개인화</span>
-                </button>
-                <button class="tone-btn" data-tone="formal" disabled>
-                  <span class="tone-icon">🎩</span>
-                  <span class="tone-name">전문화</span>
-                </button>
-              </div>
+            <!-- 원문 복사 버튼 -->
+            <div class="original-copy-section">
+              <button id="copyOriginalBtn" class="copy-original-btn" disabled>
+                <span>📄</span>
+                <span>복사</span>
+              </button>
             </div>
 
             <div class="divider"></div>
@@ -100,6 +83,22 @@
               ></textarea>
             </div>
 
+            <!-- 어조 선택 -->
+            <div id="toneSelection" class="tone-selection">
+              <div class="tone-buttons">
+                <button class="tone-btn" data-tone="friendly" disabled>
+                  <span class="tone-icon">😊</span>
+                  <span class="tone-name">개인화</span>
+                </button>
+                <button class="tone-btn" data-tone="formal" disabled>
+                  <span class="tone-icon">🎩</span>
+                  <span class="tone-name">전문화</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
             <!-- 액션 버튼 -->
             <div class="result-actions">
               <button id="copyResultBtn" class="action-button primary" disabled>
@@ -122,7 +121,6 @@
           <div id="historyTab" class="main-tab-pane">
             <div id="historySection" class="history-section">
               <div class="history-header">
-                <span class="history-title">📋 히스토리</span>
                 <button
                   id="clearHistoryBtn"
                   class="clear-all-btn"
@@ -241,41 +239,16 @@
               </label>
               <span id="remainingUsage" class="plan-info"> 무제한 </span>
             </div>
-          </div>
 
-          <!-- AI 설정 -->
-          <div class="settings-section">
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">기본 어조</span>
+                <span class="settings-label-text">테마</span>
               </label>
-              <select id="defaultToneSetting" class="settings-select">
-                <option value="friendly" selected>개인화</option>
-                <option value="formal">전문화</option>
+              <select id="themeModeSetting" class="settings-select">
+                <option value="system" selected>시스템 설정 따라가기</option>
+                <option value="light">라이트 모드</option>
+                <option value="dark">다크 모드</option>
               </select>
-            </div>
-
-            <div class="settings-item">
-              <label class="settings-label">
-                <span class="settings-label-text">복사 대상</span>
-              </label>
-              <select id="copyTargetSetting" class="settings-select">
-                <option value="original" selected>캡처 원문</option>
-                <option value="final">AI 정리</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- 테마 설정 -->
-          <div class="settings-section">
-            <div class="settings-item">
-              <label class="settings-label">
-                <span class="settings-label-text">다크 모드</span>
-              </label>
-              <label class="toggle-switch">
-                <input type="checkbox" id="darkModeSetting" />
-                <span class="toggle-slider"></span>
-              </label>
             </div>
           </div>
 

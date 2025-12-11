@@ -113,10 +113,6 @@ export class Pricing {
 
     this.pricingContainer.innerHTML = `
       <div class="pricing-wrapper">
-        <div class="pricing-header">
-          <h2>💎 플랜 선택</h2>
-        </div>
-
         <div class="pricing-plans">
           ${this.plans.map((plan) => this.renderPlanCard(plan)).join("")}
         </div>
