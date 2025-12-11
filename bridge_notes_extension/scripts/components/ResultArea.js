@@ -53,7 +53,16 @@ export class ResultArea {
 
     // 템플릿 탭 제거됨 - 'insight'로 고정
 
-    // 어조 버튼 클릭 이벤트
+    // 메인 화면 어조 버튼 클릭 이벤트
+    const emptyToneButtons = document.querySelectorAll('.empty-tone-btn');
+    emptyToneButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tone = btn.getAttribute("data-tone");
+        this.selectToneOnEmpty(tone);
+      });
+    });
+
+    // 어조 버튼 클릭 이벤트 (결과 화면)
     this.toneButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const tone = btn.getAttribute("data-tone");
@@ -424,6 +433,26 @@ export class ResultArea {
   }
 
   /**
+   * 메인 화면에서 어조 선택
+   */
+  selectToneOnEmpty(tone) {
+    console.log("메인 화면 어조 선택:", tone);
+
+    // 선택된 어조 저장
+    this.selectedTone = tone;
+
+    // UI 업데이트 (active 클래스 토글)
+    const emptyToneButtons = document.querySelectorAll('.empty-tone-btn');
+    emptyToneButtons.forEach((btn) => {
+      if (btn.getAttribute("data-tone") === tone) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+  }
+
+  /**
    * 재생성: 선택된 톤으로 결과 재생성 (Step 4만 실행)
    */
   async regenerate() {
@@ -589,10 +618,9 @@ ${this.processedText}
       this.resultContent.style.display = 'block';
     }
 
-    // 원본 텍스트 표시
+    // 원본 텍스트 표시 (textContent 사용)
     if (this.originalText) {
-      this.originalText.value = this.capturedText;
-      this.originalText.disabled = false;
+      this.originalText.textContent = this.capturedText;
     }
 
     // 최종 결과 텍스트 표시
