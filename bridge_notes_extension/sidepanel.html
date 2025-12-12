@@ -15,8 +15,8 @@
         <div class="header">
           <div class="header-content">
             <div class="header-text">
-              <h1>BRIDGE notes</h1>
-              <p>AI와의 대화를 두 클릭으로 캡처</p>
+              <h1 data-i18n="header.title">BRIDGE notes</h1>
+              <p data-i18n="header.subtitle">AI와의 대화를 두 클릭으로 캡처</p>
             </div>
           </div>
         </div>
@@ -24,7 +24,7 @@
         <div class="button-area">
           <button id="startCaptureBtn" class="main-button">
             <span class="icon">🎯</span>
-            <span>범위 선택 시작</span>
+            <span data-i18n="button.startCapture">범위 선택 시작</span>
             <div id="usageBox" class="usage-box">
               <span id="remainingCount">5</span>
             </div>
@@ -38,8 +38,8 @@
           <!-- 빈 상태 -->
           <div id="emptyState" class="empty-state">
             <div class="empty-state-icon">📭</div>
-            <div class="empty-state-title">아직 캡처된 내용이 없습니다</div>
-            <div class="empty-state-description">
+            <div class="empty-state-title" data-i18n="empty.title">아직 캡처된 내용이 없습니다</div>
+            <div class="empty-state-description" data-i18n="empty.description">
               위의 "범위 선택 시작" 버튼을 눌러<br />
               AI 대화 내용을 캡처해보세요
             </div>
@@ -49,11 +49,11 @@
               <div class="empty-tone-buttons">
                 <button class="empty-tone-btn active" data-tone="friendly">
                   <span class="tone-icon">😊</span>
-                  <span class="tone-name">개인화</span>
+                  <span class="tone-name" data-i18n="tone.friendly">개인화</span>
                 </button>
                 <button class="empty-tone-btn" data-tone="formal">
                   <span class="tone-icon">🎩</span>
-                  <span class="tone-name">전문화</span>
+                  <span class="tone-name" data-i18n="tone.formal">전문화</span>
                 </button>
               </div>
             </div>
@@ -70,7 +70,7 @@
             <div class="original-copy-section">
               <button id="copyOriginalBtn" class="copy-original-btn" disabled>
                 <span>📄</span>
-                <span>복사</span>
+                <span data-i18n="result.copy">복사</span>
               </button>
             </div>
 
@@ -85,13 +85,14 @@
                 style="display: none"
               >
                 <div class="loading-spinner"></div>
-                <div class="loading-text">AI가 노트를 정리하고 있습니다...</div>
+                <div class="loading-text" data-i18n="result.loading">AI가 노트를 정리하고 있습니다...</div>
               </div>
 
               <!-- 결과 텍스트 -->
               <textarea
                 id="resultText"
                 class="result-textarea"
+                data-i18n-placeholder="result.placeholder"
                 placeholder="AI가 정리한 내용이 여기 표시됩니다..."
                 disabled
               ></textarea>
@@ -102,11 +103,11 @@
               <div class="tone-buttons">
                 <button class="tone-btn" data-tone="friendly" disabled>
                   <span class="tone-icon">😊</span>
-                  <span class="tone-name">개인화</span>
+                  <span class="tone-name" data-i18n="tone.friendly">개인화</span>
                 </button>
                 <button class="tone-btn" data-tone="formal" disabled>
                   <span class="tone-icon">🎩</span>
-                  <span class="tone-name">전문화</span>
+                  <span class="tone-name" data-i18n="tone.formal">전문화</span>
                 </button>
               </div>
             </div>
@@ -117,11 +118,11 @@
             <div class="result-actions">
               <button id="copyResultBtn" class="action-button primary" disabled>
                 <span>📋</span>
-                <span>복사</span>
+                <span data-i18n="result.copy">복사</span>
               </button>
               <button id="regenerateBtn" class="action-button secondary">
                 <span>🔄</span>
-                <span>재생성</span>
+                <span data-i18n="result.regenerate">재생성</span>
               </button>
             </div>
           </div>
@@ -138,16 +139,17 @@
                 <button
                   id="clearHistoryBtn"
                   class="clear-all-btn"
+                  data-i18n-title="history.clearAll"
                   title="전체 삭제"
                 >
                   <span>🗑️</span>
-                  <span>전체삭제</span>
+                  <span data-i18n="history.clearAll">전체삭제</span>
                 </button>
               </div>
               <div id="historyList" class="history-list"></div>
               <div id="historyEmpty" class="history-empty" style="display: flex;">
                 <div class="empty-icon">📋</div>
-                <div class="empty-text">아직 저장된 노트가 없습니다</div>
+                <div class="empty-text" data-i18n="history.empty">아직 저장된 노트가 없습니다</div>
               </div>
             </div>
           </div>
@@ -167,22 +169,22 @@
             alt="BRIDGE notes"
             class="tab-icon-img"
           />
-          <span class="tab-label">BRIDGE Notes</span>
+          <span class="tab-label" data-i18n="tab.main">BRIDGE Notes</span>
         </button>
         <button class="main-tab-btn" data-tab="history">
           <span class="tab-icon">📋</span>
-          <span class="tab-label">히스토리</span>
+          <span class="tab-label" data-i18n="tab.history">히스토리</span>
         </button>
         <button class="main-tab-btn" data-tab="pricing">
           <span class="tab-icon">💎</span>
-          <span class="tab-label">플랜</span>
+          <span class="tab-label" data-i18n="tab.pricing">플랜</span>
         </button>
       </div>
 
       <div class="footer">
         <button id="settingsBtn" class="settings-button">
           <span>⚙️</span>
-          <span>설정</span>
+          <span data-i18n="footer.settings">설정</span>
         </button>
         <div class="footer-copyright">© 2025 BRIDGE</div>
       </div>
@@ -193,7 +195,7 @@
       <div class="settings-modal-overlay"></div>
       <div class="settings-modal-content">
         <div class="settings-modal-header">
-          <h2>⚙️ 설정</h2>
+          <h2>⚙️ <span data-i18n="settings.title">설정</span></h2>
           <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
         </div>
 
@@ -224,7 +226,7 @@
                   fill="#EA4335"
                 />
               </svg>
-              <span>Google로 로그인</span>
+              <span data-i18n="settings.googleLogin">Google로 로그인</span>
             </button>
           </div>
 
@@ -232,7 +234,7 @@
           <div class="settings-section">
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">언어</span>
+                <span class="settings-label-text" data-i18n="settings.language">언어</span>
               </label>
               <select id="languageSetting" class="settings-select">
                 <option value="ko">🇰🇷 한국어</option>
@@ -242,32 +244,32 @@
 
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">사용 플랜</span>
+                <span class="settings-label-text" data-i18n="settings.plan">사용 플랜</span>
               </label>
               <span id="historyPlanInfo" class="plan-info"> Free </span>
             </div>
 
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">잔여량</span>
+                <span class="settings-label-text" data-i18n="settings.remaining">잔여량</span>
               </label>
               <span id="remainingUsage" class="plan-info"> 무제한 </span>
             </div>
 
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">테마</span>
+                <span class="settings-label-text" data-i18n="settings.theme">테마</span>
               </label>
               <select id="themeModeSetting" class="settings-select">
-                <option value="system" selected>시스템 설정 따라가기</option>
-                <option value="light">라이트 모드</option>
-                <option value="dark">다크 모드</option>
+                <option value="system" selected data-i18n="settings.themeSystem">시스템 설정 따라가기</option>
+                <option value="light" data-i18n="settings.themeLight">라이트 모드</option>
+                <option value="dark" data-i18n="settings.themeDark">다크 모드</option>
               </select>
             </div>
 
             <div class="settings-item">
               <label class="settings-label">
-                <span class="settings-label-text">AI 정리 사용</span>
+                <span class="settings-label-text" data-i18n="settings.useAi">AI 정리 사용</span>
               </label>
               <label class="settings-toggle">
                 <input type="checkbox" id="useAiProcessingSetting" checked />
@@ -283,7 +285,7 @@
               class="advanced-settings-toggle"
             >
               <div class="advanced-settings-toggle-content">
-                <span>고급 설정</span>
+                <span data-i18n="settings.advanced">고급 설정</span>
               </div>
               <svg
                 class="toggle-icon"
@@ -306,34 +308,35 @@
               <!-- Shift+클릭 설정 (카드 밖) -->
               <div class="settings-item">
                 <label class="settings-label">
-                  <span class="settings-label-text">Shift+클릭</span>
+                  <span class="settings-label-text" data-i18n="settings.shiftClick">Shift+클릭</span>
                 </label>
                 <select id="shiftClickModeSetting" class="settings-select">
-                  <option value="div" selected>선택 대화의 처음부터</option>
-                  <option value="text">선택 대화의 글자부터</option>
+                  <option value="div" selected data-i18n="settings.shiftClickDiv">선택 대화의 처음부터</option>
+                  <option value="text" data-i18n="settings.shiftClickText">선택 대화의 글자부터</option>
                 </select>
               </div>
 
               <!-- API 설정 카드 -->
               <div class="api-settings-card">
                 <div class="api-settings-card-header">
-                  <span class="api-settings-card-title">사용자 API 키</span>
+                  <span class="api-settings-card-title" data-i18n="settings.apiKey">사용자 API 키</span>
                   <span
                     class="advanced-settings-badge"
                     id="advancedSettingsBadge"
+                    data-i18n="settings.apiKeyBadge"
                     >Standard100 이상</span
                   >
                 </div>
-                <p class="api-settings-description">
+                <p class="api-settings-description" data-i18n="settings.apiKeyDesc">
                   API 키는 서버에 AES-256-GCM으로 암호화되어 안전하게 저장됩니다.
                 </p>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text"
+                    <span class="settings-label-text" data-i18n="settings.inputApiKey"
                       >입력 AI 모델 API 키</span
                     >
-                    <span class="settings-label-desc"
+                    <span class="settings-label-desc" data-i18n="settings.inputApiKeyDesc"
                       >통찰 정리, 지식 정리 버튼을 눌렀을 때 연결되는 AI</span
                     >
                   </label>
@@ -341,16 +344,17 @@
                     type="password"
                     id="processApiUrl"
                     class="settings-input"
+                    data-i18n-placeholder="settings.apiKeyPlaceholder"
                     placeholder="sk-ant-... 또는 sk-..."
                   />
                 </div>
 
                 <div class="settings-item">
                   <label class="settings-label">
-                    <span class="settings-label-text"
+                    <span class="settings-label-text" data-i18n="settings.outputApiKey"
                       >출력 AI 모델 API 키</span
                     >
-                    <span class="settings-label-desc"
+                    <span class="settings-label-desc" data-i18n="settings.outputApiKeyDesc"
                       >개인화, 전문화 버튼을 눌렀을 때 연결되는 AI</span
                     >
                   </label>
@@ -358,6 +362,7 @@
                     type="password"
                     id="finalApiUrl"
                     class="settings-input"
+                    data-i18n-placeholder="settings.apiKeyPlaceholder"
                     placeholder="sk-ant-... 또는 sk-..."
                   />
                 </div>
@@ -367,27 +372,27 @@
 
           <!-- 정보 -->
           <div class="settings-section">
-            <h3 class="settings-section-title">정보</h3>
+            <h3 class="settings-section-title" data-i18n="settings.info">정보</h3>
 
             <div class="settings-info">
               <p><strong>BRIDGE notes</strong> v1.0.0</p>
-              <p class="settings-info-desc">
+              <p class="settings-info-desc" data-i18n="settings.infoDesc">
                 AI 대화를 두 클릭으로 캡처하고 정리하는 확장 프로그램
               </p>
               <p class="settings-info-supported">
-                <strong>지원 사이트:</strong> Claude.ai, ChatGPT, Perplexity,
+                <strong data-i18n="settings.supportedSites">지원 사이트:</strong> Claude.ai, ChatGPT, Perplexity,
                 Google Gemini
               </p>
-              <p class="settings-info-copyright">Product by BRIDGE</p>
+              <p class="settings-info-copyright" data-i18n="settings.copyright">Product by BRIDGE</p>
             </div>
           </div>
 
           <!-- 개발자 도구 (개발 환경 전용) -->
           <div class="settings-section" id="devToolsSection" style="display: none;">
-            <h3 class="settings-section-title">🛠️ 개발자 도구</h3>
+            <h3 class="settings-section-title">🛠️ <span data-i18n="settings.devTools">개발자 도구</span></h3>
 
             <div class="dev-tools">
-              <p class="dev-tools-desc">플랜 구매 시뮬레이션 (개발 전용)</p>
+              <p class="dev-tools-desc" data-i18n="settings.devToolsDesc">플랜 구매 시뮬레이션 (개발 전용)</p>
               <div class="dev-plan-buttons">
                 <button id="devPlanFree" class="dev-plan-btn">Free (5회)</button>
                 <button id="devPlanBasic30" class="dev-plan-btn">Basic30 (30회)</button>
@@ -402,12 +407,14 @@
           <button
             id="resetSettingsBtn"
             class="settings-btn settings-btn-secondary"
+            data-i18n="settings.reset"
           >
             재설정
           </button>
           <button
             id="saveSettingsBtn"
             class="settings-btn settings-btn-primary"
+            data-i18n="settings.save"
           >
             저장
           </button>

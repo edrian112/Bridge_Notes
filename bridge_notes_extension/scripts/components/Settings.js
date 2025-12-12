@@ -4,6 +4,7 @@
  */
 
 import { ErrorHandler } from './ErrorHandler.js';
+import { i18n } from '../i18n/i18n.js';
 
 export class Settings {
   constructor(toast = null, errorHandler = null, onThemeChange = null, apiService = null) {
@@ -109,6 +110,14 @@ export class Settings {
       } else {
         this.applyTheme(themeMode === 'dark');
       }
+    });
+
+    // 언어 설정 실시간 적용
+    this.languageSetting.addEventListener('change', () => {
+      const language = this.languageSetting.value;
+      i18n.setLanguage(language);
+      // select 옵션 텍스트도 번역 적용
+      this.updateSelectOptions();
     });
 
     // 고급 설정 토글
@@ -282,7 +291,7 @@ export class Settings {
 
       // 성공 메시지
       if (this.toast) {
-        this.toast.success('설정이 저장되었습니다!');
+        this.toast.success(i18n.t('toast.settingsSaved'));
       }
 
       // 모달 닫기
@@ -341,7 +350,7 @@ export class Settings {
   async reset() {
     try {
       // 확인 메시지
-      const confirmed = confirm('모든 설정을 기본값으로 재설정하시겠습니까?');
+      const confirmed = confirm(i18n.t('confirm.resetSettings'));
       if (!confirmed) return;
 
       // 기본값으로 설정
@@ -369,8 +378,12 @@ export class Settings {
 
       // 성공 메시지
       if (this.toast) {
-        this.toast.success('설정이 기본값으로 재설정되었습니다!');
+        this.toast.success(i18n.t('toast.settingsReset'));
       }
+
+      // 언어도 기본값(ko)으로 재설정
+      i18n.setLanguage('ko');
+      this.updateSelectOptions();
 
       console.log('Settings reset to default');
     } catch (error) {
@@ -542,9 +555,32 @@ export class Settings {
 
       // Free, Basic30 플랜이면 안내 메시지 표시
       if (!this.currentSettings.isPaidPlan && this.toast) {
-        this.toast.info('다른 언어모델을 사용하려면 Standard100 이상 플랜이 필요합니다.', 3000);
+        this.toast.info(i18n.t('toast.advancedPlanRequired'), 3000);
       }
     }
+  }
+
+  /**
+   * Select 옵션 텍스트 업데이트 (언어 변경 시)
+   */
+  updateSelectOptions() {
+    // 테마 모드 옵션
+    const themeOptions = this.themeModeSetting.querySelectorAll('option');
+    themeOptions.forEach(option => {
+      const key = option.getAttribute('data-i18n');
+      if (key) {
+        option.textContent = i18n.t(key);
+      }
+    });
+
+    // Shift+클릭 옵션
+    const shiftClickOptions = this.shiftClickModeSetting.querySelectorAll('option');
+    shiftClickOptions.forEach(option => {
+      const key = option.getAttribute('data-i18n');
+      if (key) {
+        option.textContent = i18n.t(key);
+      }
+    });
   }
 
   /**
@@ -553,7 +589,7 @@ export class Settings {
   async handleGoogleLogin() {
     // TODO: 실제 구글 OAuth 로그인 구현
     if (this.toast) {
-      this.toast.info('구글 로그인 기능은 곧 제공될 예정입니다!', 3000);
+      this.toast.info(i18n.t('toast.googleLoginSoon'), 3000);
     }
 
     console.log('Google login requested');

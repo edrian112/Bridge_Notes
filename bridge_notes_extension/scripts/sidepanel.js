@@ -13,6 +13,7 @@ import { Pricing } from "./components/Pricing.js";
 import { APIService } from "./services/APIService.js";
 import { CacheService } from "./services/CacheService.js";
 import { HistoryService } from "./services/HistoryService.js";
+import { i18n } from "./i18n/i18n.js";
 
 class BRIDGENotesSidePanel {
   constructor() {
@@ -82,6 +83,10 @@ class BRIDGENotesSidePanel {
   async init() {
     // Phase 2: API Service 초기화
     await this.apiService.init();
+
+    // i18n 초기화 (설정에서 언어 가져오기)
+    const savedLanguage = this.settings.getSetting('language') || 'ko';
+    i18n.setLanguage(savedLanguage);
 
     // 히스토리 초기 렌더링
     await this.history.render();
