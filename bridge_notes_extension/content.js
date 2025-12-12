@@ -541,20 +541,11 @@ class BRIDGENotesCapture {
         selectionRange.setEnd(startRange.endContainer, startRange.endOffset);
       }
 
-      // Range에서 텍스트 추출
+      // Range에서 텍스트 추출 (이제 구조화된 형식으로 반환됨: [역할]\n내용)
       const extractedText = this.extractTextFromRange(selectionRange);
 
-      // 메시지 역할 감지를 위해 컨테이너 요소 찾기
-      const container = selectionRange.commonAncestorContainer;
-      const messageElement = container.nodeType === Node.TEXT_NODE
-        ? this.findMessageElement(container.parentElement)
-        : this.findMessageElement(container);
-
-      // 역할 감지
-      const role = this.detectMessageRole(messageElement);
-
-      // 포맷팅
-      return `${role}: ${extractedText}`;
+      // extractTextFromRange가 이미 역할 정보를 포함하므로 그대로 반환
+      return extractedText;
 
     } catch (error) {
       console.error("BRIDGE notes: Error extracting text from ranges", error);
@@ -564,6 +555,7 @@ class BRIDGENotesCapture {
 
   extractTextFromRange(range) {
     // Range에서 텍스트 추출 (메시지 레벨까지 올라가서 수집)
+    // 각 메시지별로 역할(AI/사용자)을 구분하여 추출
     try {
       // 시작과 끝 컨테이너
       let startContainer = range.startContainer;
@@ -681,55 +673,72 @@ class BRIDGENotesCapture {
         return this.extractTextFromRangeFallback(range);
       }
 
-      // 수집된 요소들을 임시 div에 복제
-      const tempDiv = document.createElement('div');
-      elementsToExtract.forEach(element => {
+      // 각 요소별로 역할을 감지하여 구조화된 텍스트 생성
+      const messagesWithRoles = [];
+
+      elementsToExtract.forEach((element, index) => {
+        // 메시지 역할 감지
+        const role = this.detectMessageRole(element);
+
+        // 요소를 임시 div에 복제하여 텍스트 추출
+        const tempDiv = document.createElement('div');
         const clone = element.cloneNode(true);
         tempDiv.appendChild(clone);
+
+        // 제거할 요소들
+        const selectorsToRemove = [
+          "button",
+          '[role="button"]',
+          ".copy-button",
+          '[class*="copy"]',
+          '[class*="CopyButton"]',
+          "svg",
+          '[aria-hidden="true"]',
+          '[class*="toolbar"]',
+          '[class*="Toolbar"]',
+          "img",
+          "video",
+          "audio",
+          '[class*="sr-only"]',
+          '[class*="screen-reader"]',
+          '[class*="visually-hidden"]',
+          '[role="presentation"]',
+          '[aria-label]:empty',
+          '[style*="display: none"]',
+          '[style*="visibility: hidden"]',
+          '[hidden]',
+        ];
+
+        selectorsToRemove.forEach((selector) => {
+          tempDiv.querySelectorAll(selector).forEach((el) => el.remove());
+        });
+
+        this.removeHiddenElements(tempDiv);
+
+        let text = tempDiv.innerText || tempDiv.textContent || "";
+        text = this.cleanDuplicateLines(text);
+
+        if (text.trim()) {
+          messagesWithRoles.push({
+            role: role,
+            content: text.trim()
+          });
+        }
       });
 
-      // 제거할 요소들 (확장)
-      const selectorsToRemove = [
-        "button",
-        '[role="button"]',
-        ".copy-button",
-        '[class*="copy"]',
-        '[class*="CopyButton"]',
-        "svg",
-        '[aria-hidden="true"]',
-        '[class*="toolbar"]',
-        '[class*="Toolbar"]',
-        "img",
-        "video",
-        "audio",
-        // 접근성 전용 텍스트 제거
-        '[class*="sr-only"]',
-        '[class*="screen-reader"]',
-        '[class*="visually-hidden"]',
-        '[role="presentation"]',
-        '[aria-label]:empty',
-        // 숨겨진 요소 제거
-        '[style*="display: none"]',
-        '[style*="visibility: hidden"]',
-        '[hidden]',
-      ];
+      console.log(`BRIDGE notes: Extracted ${messagesWithRoles.length} messages with roles`);
 
-      selectorsToRemove.forEach((selector) => {
-        tempDiv.querySelectorAll(selector).forEach((el) => el.remove());
+      // 구조화된 형식으로 반환: [ROLE]내용 형태
+      // ResultArea에서 파싱하여 스타일링
+      let formattedText = "";
+      messagesWithRoles.forEach((msg, index) => {
+        if (index > 0) {
+          formattedText += "\n\n"; // 메시지 간 줄바꿈
+        }
+        formattedText += `[${msg.role}]\n${msg.content}`;
       });
 
-      // 실제로 보이지 않는 요소 제거
-      this.removeHiddenElements(tempDiv);
-
-      // 텍스트 추출
-      let text = tempDiv.innerText || tempDiv.textContent || "";
-
-      // 중복 라인 제거 + 정리
-      text = this.cleanDuplicateLines(text);
-
-      console.log(`BRIDGE notes: Extracted ${text.length} characters from ${elementsToExtract.length} elements`);
-
-      return text;
+      return formattedText;
     } catch (error) {
       console.error("BRIDGE notes: Error in extractTextFromRange", error);
       // Fallback to original method

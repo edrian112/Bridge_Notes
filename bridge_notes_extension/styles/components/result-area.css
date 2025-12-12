@@ -403,3 +403,74 @@
 .processed-result-section {
   margin-top: 16px;
 }
+
+/* =========================
+   AI/사용자 메시지 구분 스타일
+   ========================= */
+
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.message-block {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
+/* 사용자 메시지 스타일 */
+.message-block.message-user {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border-left: 3px solid #667eea;
+}
+
+/* AI 메시지 스타일 */
+.message-block.message-ai {
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 3px solid #10b981;
+}
+
+/* 알 수 없는 역할 */
+.message-block.message-unknown {
+  background: #f9fafb;
+  border-left: 3px solid #9ca3af;
+}
+
+/* 역할 라벨 */
+.message-role-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message-user .message-role-label {
+  color: #667eea;
+}
+
+.message-ai .message-role-label {
+  color: #10b981;
+}
+
+.message-unknown .message-role-label {
+  color: #6b7280;
+}
+
+/* 메시지 내용 */
+.message-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+  word-break: break-word;
+}
+
+/* 메시지 구분선 */
+.message-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+  margin: 8px 0;
+}

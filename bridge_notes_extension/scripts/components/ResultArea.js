@@ -123,9 +123,9 @@ export class ResultArea {
       this.resultContent.style.display = "block";
     }
 
-    // 원문 표시
+    // 원문 표시 (AI/사용자 구분 포맷팅 적용)
     if (this.originalText) {
-      this.originalText.textContent = text;
+      this.originalText.innerHTML = this.formatOriginalText(text);
     }
 
     // 원본 복사 버튼 활성화
@@ -665,9 +665,9 @@ ${this.processedText}
       this.resultContent.style.display = 'block';
     }
 
-    // 원본 텍스트 표시 (textContent 사용)
+    // 원본 텍스트 표시 (AI/사용자 구분 포맷팅 적용)
     if (this.originalText) {
-      this.originalText.textContent = this.capturedText;
+      this.originalText.innerHTML = this.formatOriginalText(this.capturedText);
     }
 
     // 최종 결과 텍스트 표시
@@ -698,5 +698,147 @@ ${this.processedText}
     if (this.toast) {
       this.toast.success('히스토리에서 불러왔습니다');
     }
+  }
+
+  /**
+   * 원본 텍스트를 AI/사용자 구분하여 HTML로 포맷팅
+   * @param {string} text - 구조화된 텍스트 ([역할]\n내용 형식)
+   * @returns {string} - 포맷팅된 HTML
+   */
+  formatOriginalText(text) {
+    if (!text) return '';
+
+    // 메시지 파싱
+    const messages = this.parseMessages(text);
+
+    // 메시지가 없거나 파싱 실패 시 일반 텍스트로 표시
+    if (messages.length === 0) {
+      return this.escapeHtml(text);
+    }
+
+    // 각 메시지를 HTML로 변환
+    let html = '<div class="messages-container">';
+
+    messages.forEach((msg, index) => {
+      const roleClass = this.getRoleClass(msg.role);
+      const roleLabel = this.getRoleLabel(msg.role);
+      const escapedContent = this.escapeHtml(msg.content);
+      // 줄바꿈을 <br>로 변환
+      const formattedContent = escapedContent.replace(/\n/g, '<br>');
+
+      html += `
+        <div class="message-block ${roleClass}">
+          <div class="message-role-label">${roleLabel}</div>
+          <div class="message-content">${formattedContent}</div>
+        </div>
+      `;
+
+      // 메시지 사이 구분선 (마지막 메시지 제외)
+      if (index < messages.length - 1) {
+        html += '<div class="message-divider"></div>';
+      }
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  /**
+   * 구조화된 텍스트를 메시지 배열로 파싱
+   * @param {string} text - [역할]\n내용 형식의 텍스트
+   * @returns {Array} - [{role, content}] 배열
+   */
+  parseMessages(text) {
+    const messages = [];
+
+    // [역할] 패턴으로 분리
+    // 지원하는 역할: 사용자, Claude, ChatGPT, Perplexity, AI
+    const rolePattern = /\[(사용자|Claude|ChatGPT|Perplexity|AI)\]\n/g;
+
+    // 역할 패턴이 없으면 빈 배열 반환 (일반 텍스트로 처리)
+    if (!rolePattern.test(text)) {
+      return [];
+    }
+
+    // 패턴 매칭 위치 찾기
+    rolePattern.lastIndex = 0; // 정규식 인덱스 초기화
+    const matches = [];
+    let match;
+
+    while ((match = rolePattern.exec(text)) !== null) {
+      matches.push({
+        role: match[1],
+        index: match.index,
+        endIndex: match.index + match[0].length
+      });
+    }
+
+    // 각 역할별로 내용 추출
+    matches.forEach((match, i) => {
+      const startIndex = match.endIndex;
+      const endIndex = (i < matches.length - 1) ? matches[i + 1].index : text.length;
+      const content = text.slice(startIndex, endIndex).trim();
+
+      if (content) {
+        messages.push({
+          role: match.role,
+          content: content
+        });
+      }
+    });
+
+    return messages;
+  }
+
+  /**
+   * 역할에 따른 CSS 클래스 반환
+   * @param {string} role - 역할 (사용자, Claude, ChatGPT, Perplexity, AI)
+   * @returns {string} - CSS 클래스
+   */
+  getRoleClass(role) {
+    switch (role) {
+      case '사용자':
+        return 'message-user';
+      case 'Claude':
+      case 'ChatGPT':
+      case 'Perplexity':
+      case 'AI':
+        return 'message-ai';
+      default:
+        return 'message-unknown';
+    }
+  }
+
+  /**
+   * 역할에 따른 표시 라벨 반환
+   * @param {string} role - 역할
+   * @returns {string} - 표시용 라벨
+   */
+  getRoleLabel(role) {
+    switch (role) {
+      case '사용자':
+        return '👤 사용자';
+      case 'Claude':
+        return '🤖 Claude';
+      case 'ChatGPT':
+        return '🤖 ChatGPT';
+      case 'Perplexity':
+        return '🤖 Perplexity';
+      case 'AI':
+        return '🤖 AI';
+      default:
+        return role;
+    }
+  }
+
+  /**
+   * HTML 이스케이프
+   * @param {string} text - 원본 텍스트
+   * @returns {string} - 이스케이프된 텍스트
+   */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
