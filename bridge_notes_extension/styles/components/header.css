@@ -1,0 +1,45 @@
+/* =========================
+   Header Component
+   ========================= */
+
+.header {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+  z-index: 10;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.header p {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.button-area {
+  padding: 20px 20px 10px 20px;
+  background: #ffffff;
+}
