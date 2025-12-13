@@ -48,91 +48,7 @@
 
 ---
 
-### 3. 클로드 대화 내 코드 블록 및 특수 영역 캡처 누락
-**Status**: 🔴 Known Issue - 핵심 버그 (우선 수정 필요)
-
-**증상**:
-- Claude.ai 대화에서 범위 선택 시 **코드 블록, 표, 리스트 등 특수 포맷 영역이 누락**됨
-- 일반 텍스트만 캡처되고, `<div>`로 감싸진 특별한 영역은 건너뜀
-- 예시:
-  ```
-  [사용자 질문] ✅ 캡처됨
-  [AI 응답 - 일반 텍스트] ✅ 캡처됨
-  [AI 응답 - 코드 블록] ❌ 누락
-  [AI 응답 - 계속되는 일반 텍스트] ✅ 캡처됨
-  ```
-
-**구체적 문제**:
-- Claude.ai는 코드 블록, 표, 리스트 등을 별도의 `<div>` 컨테이너로 렌더링
-- 현재 Range API 기반 `extractTextFromRanges()` 메서드가 이런 중첩된 구조를 건너뜀
-- `cloneContents()` 또는 `toString()`이 형제 요소 간 모든 내용을 포함하지 못함
-
-**원인 분석**:
-1. **Range API의 제한**:
-   - 시작 Range와 끝 Range 사이의 모든 형제 요소를 자동으로 포함하지 않음
-   - 특정 노드 타입(특히 별도 `<div>` 블록)을 건너뛰는 경향
-
-2. **Claude DOM 구조**:
-   ```html
-   <div class="message">
-     <p>일반 텍스트</p>           ← 캡처됨
-     <div class="code-block">     ← 누락됨 (별도 div)
-       <pre><code>...</code></pre>
-     </div>
-     <p>계속되는 텍스트</p>        ← 캡처됨
-   </div>
-   ```
-
-3. **시도했던 해결 방법들**:
-   - ✅ `cloneContents()` 사용 → 코드 블록 누락
-   - ✅ 공통 조상 찾기 + 자식 수집 → 불완전한 결과
-   - ✅ 형제 순회 (`nextElementSibling`) → 일부 개선, 여전히 누락
-   - ❌ 모든 방법 실패
-
-**해결 방안 (우선순위 순)**:
-
-1. **TreeWalker API 사용** (권장):
-   ```javascript
-   // 시작~끝 사이의 모든 노드를 순회
-   const walker = document.createTreeWalker(
-     commonAncestor,
-     NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
-     {
-       acceptNode: (node) => {
-         // 시작~끝 Range 사이에 있는 노드만 수집
-         return NodeFilter.FILTER_ACCEPT;
-       }
-     }
-   );
-   ```
-
-2. **수동 DOM Traversal**:
-   - 시작 Range의 container부터 끝 Range의 container까지 모든 노드 순회
-   - 각 노드의 `textContent` 또는 `innerText` 수집
-   - 코드 블록(`<pre>`, `<code>`), 표(`<table>`), 리스트(`<ul>`, `<ol>`) 특별 처리
-
-3. **메시지 단위 수집** (대안):
-   - Range 방식 포기하고 메시지 컨테이너 직접 탐색
-   - 시작 메시지 찾기 → 끝 메시지 찾기 → 중간 모든 메시지 수집
-   - 각 메시지의 전체 내용(코드 포함) 추출
-
-4. **플랫폼별 커스텀 추출 로직**:
-   - Claude: 코드 블록 selector `.language-*`, 표 selector `table`
-   - ChatGPT: 코드 블록 selector `.bg-black`
-   - 각 플랫폼의 특수 요소를 명시적으로 수집
-
-**테스트 시나리오**:
-- [ ] 일반 텍스트만 있는 대화
-- [ ] 코드 블록 포함 대화
-- [ ] 표(table) 포함 대화
-- [ ] 리스트(ul/ol) 포함 대화
-- [ ] 위 모든 요소 혼합된 대화
-
-**우선순위**: 🔴 High (핵심 기능 버그, 사용자 데이터 손실)
-
----
-
-### 4. Lucide Icons 로딩 실패 (Chrome Extension MV3)
+### 3. Lucide Icons 로딩 실패 (Chrome Extension MV3)
 **Status**: 🔴 Known Issue - 우회 완료 (Emoji 사용)
 
 **증상**:
@@ -197,7 +113,22 @@
 
 ## 🟢 Resolved Issues
 
-_(해결된 이슈는 여기에 기록)_
+### ✅ 클로드 대화 내 코드 블록 및 특수 영역 캡처 누락
+**Status**: 🟢 Resolved - 2025-12-13
+
+**해결 방법**:
+- TreeWalker API를 사용하여 `extractTextFromRange()` 메서드 전면 재구현
+- 코드 블록, 테이블, 리스트, 인용문을 마크다운 형식으로 캡처
+
+**구현 내용**:
+1. `extractTextFromRange()` - TreeWalker 기반 노드 순회
+2. `extractFormattedContent()` - 특수 요소 감지 및 라우팅
+3. `extractCodeBlock()` - 코드 블록 → 마크다운 코드 펜스 (언어 감지 포함)
+4. `extractTable()` - HTML 테이블 → 마크다운 테이블 형식
+5. `extractList()` - 중첩 리스트 지원 (UL/OL 모두)
+6. `extractBlockquote()` - 인용문 → `>` 프리픽스 형식
+
+**커밋**: `32b0880` - Fix: Implement TreeWalker API for code block/table/list capture
 
 ---
 
