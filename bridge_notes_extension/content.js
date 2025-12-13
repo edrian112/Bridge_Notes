@@ -563,178 +563,313 @@ class BRIDGENotesCapture {
   }
 
   extractTextFromRange(range) {
-    // Range에서 텍스트 추출 (메시지 레벨까지 올라가서 수집)
+    // TreeWalker API를 사용한 텍스트 추출 (코드 블록, 테이블, 리스트 포함)
     try {
-      // 시작과 끝 컨테이너
-      let startContainer = range.startContainer;
-      let endContainer = range.endContainer;
+      const commonAncestor = range.commonAncestorContainer;
 
-      if (startContainer.nodeType === Node.TEXT_NODE) {
-        startContainer = startContainer.parentElement;
-      }
-      if (endContainer.nodeType === Node.TEXT_NODE) {
-        endContainer = endContainer.parentElement;
-      }
+      // 공통 조상이 텍스트 노드면 부모 요소 사용
+      const rootElement = commonAncestor.nodeType === Node.TEXT_NODE
+        ? commonAncestor.parentElement
+        : commonAncestor;
 
-      // 메시지 레벨 컨테이너 찾기 (더 상위로 올라감)
-      const findMessageLevelContainer = (element) => {
-        let current = element;
-        let depth = 0;
-        const maxDepth = 20;
-
-        while (current && current !== document.body && depth < maxDepth) {
-          // Claude 메시지 컨테이너 패턴
-          const classes = current.className || '';
-
-          // 메시지 컨테이너 특징: grid, flex, message 관련 클래스
-          if (
-            classes.includes('font-claude') ||
-            classes.includes('group/conversation') ||
-            current.hasAttribute('data-testid') ||
-            current.tagName === 'ARTICLE'
-          ) {
-            console.log(`BRIDGE notes: Found message container at depth ${depth}:`, {
-              tag: current.tagName,
-              class: current.className,
-              id: current.id
-            });
-            return current;
-          }
-
-          current = current.parentElement;
-          depth++;
-        }
-
-        // 메시지 컨테이너를 못 찾으면 원래 요소 반환
-        return element;
-      };
-
-      const startMessage = findMessageLevelContainer(startContainer);
-      const endMessage = findMessageLevelContainer(endContainer);
-
-      console.log("BRIDGE notes: Message containers found", {
-        startMessage: startMessage?.tagName,
-        endMessage: endMessage?.tagName,
-        same: startMessage === endMessage
+      console.log("BRIDGE notes: TreeWalker root element", {
+        tag: rootElement.tagName,
+        class: rootElement.className
       });
 
-      // 두 메시지의 공통 부모 찾기
-      let commonParent = startMessage;
-      while (commonParent && !commonParent.contains(endMessage)) {
-        commonParent = commonParent.parentElement;
-      }
+      // 범위 내 모든 노드를 수집할 결과 배열
+      const extractedParts = [];
 
-      if (!commonParent) {
-        console.log("BRIDGE notes: Could not find common parent, using fallback");
-        return this.extractTextFromRangeFallback(range);
-      }
+      // 특수 요소 태그 목록 (코드 블록, 테이블, 리스트)
+      const specialTags = new Set(['PRE', 'CODE', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'UL', 'OL', 'LI', 'BLOCKQUOTE']);
 
-      console.log("BRIDGE notes: Common parent found", {
-        tag: commonParent.tagName,
-        class: commonParent.className
-      });
-
-      // 공통 부모의 모든 직접 자식 요소들
-      const childrenArray = Array.from(commonParent.children);
-
-      // 시작 메시지를 포함하는 자식 찾기
-      const findContainingChild = (element) => {
-        for (const child of childrenArray) {
-          if (child.contains(element) || child === element) {
-            return child;
-          }
-        }
-        return null;
-      };
-
-      const startChild = findContainingChild(startMessage);
-      const endChild = findContainingChild(endMessage);
-
-      console.log("BRIDGE notes: Child boundaries", {
-        startChild: startChild?.tagName,
-        endChild: endChild?.tagName,
-        totalChildren: childrenArray.length
-      });
-
-      // 수집할 요소들
-      const elementsToExtract = [];
-
-      if (startChild && endChild) {
-        const startIndex = childrenArray.indexOf(startChild);
-        const endIndex = childrenArray.indexOf(endChild);
-
-        // 시작부터 끝까지의 모든 자식 요소 수집
-        if (startIndex !== -1 && endIndex !== -1) {
-          const minIndex = Math.min(startIndex, endIndex);
-          const maxIndex = Math.max(startIndex, endIndex);
-
-          for (let i = minIndex; i <= maxIndex; i++) {
-            elementsToExtract.push(childrenArray[i]);
-          }
-        }
-      }
-
-      console.log(`BRIDGE notes: Collecting ${elementsToExtract.length} elements`);
-
-      if (elementsToExtract.length === 0) {
-        console.log("BRIDGE notes: No elements collected, using fallback");
-        return this.extractTextFromRangeFallback(range);
-      }
-
-      // 수집된 요소들을 임시 div에 복제
-      const tempDiv = document.createElement('div');
-      elementsToExtract.forEach(element => {
-        const clone = element.cloneNode(true);
-        tempDiv.appendChild(clone);
-      });
-
-      // 제거할 요소들 (확장)
-      const selectorsToRemove = [
-        "button",
-        '[role="button"]',
-        ".copy-button",
-        '[class*="copy"]',
-        '[class*="CopyButton"]',
-        "svg",
-        '[aria-hidden="true"]',
-        '[class*="toolbar"]',
-        '[class*="Toolbar"]',
-        "img",
-        "video",
-        "audio",
-        // 접근성 전용 텍스트 제거
-        '[class*="sr-only"]',
-        '[class*="screen-reader"]',
-        '[class*="visually-hidden"]',
-        '[role="presentation"]',
-        '[aria-label]:empty',
-        // 숨겨진 요소 제거
-        '[style*="display: none"]',
-        '[style*="visibility: hidden"]',
-        '[hidden]',
+      // 제외할 요소 선택자
+      const excludeSelectors = [
+        'button', '[role="button"]', '.copy-button', '[class*="copy"]',
+        '[class*="CopyButton"]', 'svg', '[aria-hidden="true"]',
+        '[class*="toolbar"]', '[class*="Toolbar"]', 'img', 'video', 'audio',
+        '[class*="sr-only"]', '[class*="screen-reader"]',
+        '[class*="visually-hidden"]', '[role="presentation"]',
+        '[style*="display: none"]', '[style*="visibility: hidden"]', '[hidden]'
       ];
 
-      selectorsToRemove.forEach((selector) => {
-        tempDiv.querySelectorAll(selector).forEach((el) => el.remove());
-      });
+      // 요소가 제외 대상인지 확인
+      const shouldExclude = (element) => {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+        return excludeSelectors.some(selector => {
+          try {
+            return element.matches(selector);
+          } catch {
+            return false;
+          }
+        });
+      };
 
-      // 실제로 보이지 않는 요소 제거
-      this.removeHiddenElements(tempDiv);
+      // 요소가 숨겨져 있는지 확인
+      const isHidden = (element) => {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+        try {
+          const style = window.getComputedStyle(element);
+          return style.display === 'none' ||
+                 style.visibility === 'hidden' ||
+                 style.opacity === '0' ||
+                 style.width === '0px' ||
+                 style.height === '0px';
+        } catch {
+          return false;
+        }
+      };
 
-      // 텍스트 추출
-      let text = tempDiv.innerText || tempDiv.textContent || "";
+      // TreeWalker 생성 - 텍스트 노드와 요소 노드 모두 순회
+      const walker = document.createTreeWalker(
+        rootElement,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode: (node) => {
+            // 요소 노드 처리
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // 제외 대상이거나 숨겨진 요소면 해당 서브트리 전체 스킵
+              if (shouldExclude(node) || isHidden(node)) {
+                return NodeFilter.FILTER_REJECT;
+              }
+              return NodeFilter.FILTER_SKIP; // 요소 자체는 스킵, 자식은 순회
+            }
+
+            // 텍스트 노드 처리
+            if (node.nodeType === Node.TEXT_NODE) {
+              // 빈 텍스트 노드 스킵
+              if (!node.textContent.trim()) {
+                return NodeFilter.FILTER_SKIP;
+              }
+
+              // 범위 내에 있는지 확인
+              const nodeRange = document.createRange();
+              nodeRange.selectNode(node);
+
+              // 노드가 선택 범위와 교차하는지 확인
+              const isIntersecting = range.compareBoundaryPoints(Range.END_TO_START, nodeRange) <= 0 &&
+                                    range.compareBoundaryPoints(Range.START_TO_END, nodeRange) >= 0;
+
+              return isIntersecting ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+            }
+
+            return NodeFilter.FILTER_SKIP;
+          }
+        }
+      );
+
+      // 이전에 처리한 특수 요소 추적 (중복 방지)
+      const processedSpecialElements = new Set();
+
+      // 노드 순회
+      let currentNode = walker.nextNode();
+      while (currentNode) {
+        if (currentNode.nodeType === Node.TEXT_NODE) {
+          // 텍스트 노드의 부모 확인
+          let parent = currentNode.parentElement;
+          let specialParent = null;
+
+          // 특수 요소(코드, 테이블, 리스트) 부모 찾기
+          while (parent && parent !== rootElement) {
+            if (specialTags.has(parent.tagName)) {
+              specialParent = parent;
+              // PRE나 TABLE, UL/OL까지 올라가기 (최상위 특수 요소)
+              if (parent.tagName === 'PRE' || parent.tagName === 'TABLE' ||
+                  parent.tagName === 'UL' || parent.tagName === 'OL') {
+                break;
+              }
+            }
+            parent = parent.parentElement;
+          }
+
+          if (specialParent && !processedSpecialElements.has(specialParent)) {
+            // 특수 요소 전체를 한 번에 처리
+            processedSpecialElements.add(specialParent);
+
+            // 특수 요소의 포맷된 텍스트 추출
+            const formattedText = this.extractFormattedContent(specialParent);
+            if (formattedText) {
+              extractedParts.push(formattedText);
+            }
+          } else if (!specialParent) {
+            // 일반 텍스트 노드
+            const text = currentNode.textContent;
+            if (text.trim()) {
+              extractedParts.push(text);
+            }
+          }
+          // specialParent가 있지만 이미 처리된 경우는 스킵
+        }
+
+        currentNode = walker.nextNode();
+      }
+
+      // 결과 조합
+      let text = extractedParts.join('\n');
 
       // 중복 라인 제거 + 정리
       text = this.cleanDuplicateLines(text);
 
-      console.log(`BRIDGE notes: Extracted ${text.length} characters from ${elementsToExtract.length} elements`);
+      console.log(`BRIDGE notes: TreeWalker extracted ${text.length} characters, ${extractedParts.length} parts`);
+
+      // 결과가 없으면 fallback 사용
+      if (!text.trim()) {
+        console.log("BRIDGE notes: TreeWalker returned empty, using fallback");
+        return this.extractTextFromRangeFallback(range);
+      }
 
       return text;
     } catch (error) {
-      console.error("BRIDGE notes: Error in extractTextFromRange", error);
+      console.error("BRIDGE notes: Error in extractTextFromRange (TreeWalker)", error);
       // Fallback to original method
       return this.extractTextFromRangeFallback(range);
     }
+  }
+
+  extractFormattedContent(element) {
+    // 특수 요소(코드 블록, 테이블, 리스트)에서 포맷된 텍스트 추출
+    const tagName = element.tagName;
+
+    try {
+      // 코드 블록 (PRE, CODE)
+      if (tagName === 'PRE' || tagName === 'CODE') {
+        return this.extractCodeBlock(element);
+      }
+
+      // 테이블
+      if (tagName === 'TABLE') {
+        return this.extractTable(element);
+      }
+
+      // 리스트 (UL, OL)
+      if (tagName === 'UL' || tagName === 'OL') {
+        return this.extractList(element, tagName === 'OL');
+      }
+
+      // 인용문
+      if (tagName === 'BLOCKQUOTE') {
+        return this.extractBlockquote(element);
+      }
+
+      // 기타: 일반 텍스트 추출
+      return element.textContent || '';
+    } catch (error) {
+      console.error("BRIDGE notes: Error extracting formatted content", error);
+      return element.textContent || '';
+    }
+  }
+
+  extractCodeBlock(element) {
+    // 코드 블록에서 텍스트 추출 (줄바꿈 보존)
+    // PRE 안의 CODE 또는 PRE 자체
+    const codeElement = element.tagName === 'PRE'
+      ? (element.querySelector('code') || element)
+      : element;
+
+    // 코드 언어 감지 (class에서 language-xxx 추출)
+    let language = '';
+    const classList = codeElement.className || '';
+    const langMatch = classList.match(/language-(\w+)/);
+    if (langMatch) {
+      language = langMatch[1];
+    }
+
+    // 코드 내용 추출 (innerText로 줄바꿈 보존)
+    let code = codeElement.innerText || codeElement.textContent || '';
+
+    // 마크다운 코드 블록 형식으로 반환
+    const fence = '```';
+    return `${fence}${language}\n${code.trim()}\n${fence}`;
+  }
+
+  extractTable(element) {
+    // 테이블에서 마크다운 형식으로 텍스트 추출
+    const rows = element.querySelectorAll('tr');
+    if (rows.length === 0) return element.textContent || '';
+
+    const tableData = [];
+    let maxCols = 0;
+
+    // 모든 행 처리
+    rows.forEach((row, rowIndex) => {
+      const cells = row.querySelectorAll('th, td');
+      const rowData = [];
+
+      cells.forEach(cell => {
+        const text = (cell.textContent || '').trim().replace(/\|/g, '\\|'); // | 이스케이프
+        rowData.push(text);
+      });
+
+      maxCols = Math.max(maxCols, rowData.length);
+      tableData.push(rowData);
+    });
+
+    if (tableData.length === 0) return '';
+
+    // 마크다운 테이블 형식으로 변환
+    const lines = [];
+
+    tableData.forEach((row, index) => {
+      // 열 수 맞추기
+      while (row.length < maxCols) {
+        row.push('');
+      }
+      lines.push('| ' + row.join(' | ') + ' |');
+
+      // 첫 행 다음에 구분선 추가
+      if (index === 0) {
+        lines.push('| ' + row.map(() => '---').join(' | ') + ' |');
+      }
+    });
+
+    return lines.join('\n');
+  }
+
+  extractList(element, isOrdered) {
+    // 리스트에서 마크다운 형식으로 텍스트 추출
+    const items = element.querySelectorAll(':scope > li');
+    if (items.length === 0) return element.textContent || '';
+
+    const lines = [];
+
+    items.forEach((item, index) => {
+      // 직접 텍스트 내용 (중첩 리스트 제외)
+      let text = '';
+      item.childNodes.forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          text += child.textContent;
+        } else if (child.nodeType === Node.ELEMENT_NODE &&
+                   child.tagName !== 'UL' && child.tagName !== 'OL') {
+          text += child.textContent;
+        }
+      });
+      text = text.trim();
+
+      // 마커 추가
+      const marker = isOrdered ? `${index + 1}.` : '-';
+      if (text) {
+        lines.push(`${marker} ${text}`);
+      }
+
+      // 중첩 리스트 처리
+      const nestedLists = item.querySelectorAll(':scope > ul, :scope > ol');
+      nestedLists.forEach(nestedList => {
+        const nestedIsOrdered = nestedList.tagName === 'OL';
+        const nestedText = this.extractList(nestedList, nestedIsOrdered);
+        // 들여쓰기 추가
+        const indentedLines = nestedText.split('\n').map(line => '  ' + line);
+        lines.push(...indentedLines);
+      });
+    });
+
+    return lines.join('\n');
+  }
+
+  extractBlockquote(element) {
+    // 인용문에서 마크다운 형식으로 텍스트 추출
+    const text = element.textContent || '';
+    const lines = text.split('\n').filter(line => line.trim());
+    return lines.map(line => '> ' + line.trim()).join('\n');
   }
 
   extractTextFromRangeFallback(range) {
