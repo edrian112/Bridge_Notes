@@ -565,16 +565,52 @@ class BRIDGENotesCapture {
   extractTextFromRange(range) {
     // TreeWalker API를 사용한 텍스트 추출 (코드 블록, 테이블, 리스트 포함)
     try {
-      const commonAncestor = range.commonAncestorContainer;
+      // 메시지 컨테이너를 찾아서 더 넓은 범위에서 순회
+      const findMessageContainer = (node) => {
+        let current = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+        let depth = 0;
+        const maxDepth = 30;
 
-      // 공통 조상이 텍스트 노드면 부모 요소 사용
-      const rootElement = commonAncestor.nodeType === Node.TEXT_NODE
-        ? commonAncestor.parentElement
-        : commonAncestor;
+        while (current && current !== document.body && depth < maxDepth) {
+          const classes = current.className || '';
+          // Claude 메시지 컨테이너 또는 대화 영역
+          if (
+            classes.includes('font-claude') ||
+            classes.includes('group/conversation') ||
+            classes.includes('conversation') ||
+            classes.includes('message') ||
+            current.hasAttribute('data-testid') ||
+            current.tagName === 'ARTICLE' ||
+            current.tagName === 'MAIN'
+          ) {
+            return current;
+          }
+          current = current.parentElement;
+          depth++;
+        }
+        return node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      };
+
+      // 시작과 끝 컨테이너에서 메시지 레벨까지 올라가기
+      const startContainer = findMessageContainer(range.startContainer);
+      const endContainer = findMessageContainer(range.endContainer);
+
+      // 두 컨테이너의 공통 조상 찾기
+      let rootElement = startContainer;
+      while (rootElement && !rootElement.contains(endContainer)) {
+        rootElement = rootElement.parentElement;
+      }
+
+      // 공통 조상을 못 찾으면 document.body 사용
+      if (!rootElement) {
+        rootElement = document.body;
+      }
 
       console.log("BRIDGE notes: TreeWalker root element", {
         tag: rootElement.tagName,
-        class: rootElement.className
+        class: rootElement.className,
+        startTag: startContainer.tagName,
+        endTag: endContainer.tagName
       });
 
       // 범위 내 모든 노드를 수집할 결과 배열
@@ -670,12 +706,14 @@ class BRIDGENotesCapture {
           let specialParent = null;
 
           // 특수 요소(코드, 테이블, 리스트) 부모 찾기
-          while (parent && parent !== rootElement) {
+          // rootElement 제한 없이 document.body까지 탐색
+          while (parent && parent !== document.body) {
             if (specialTags.has(parent.tagName)) {
               specialParent = parent;
               // PRE나 TABLE, UL/OL까지 올라가기 (최상위 특수 요소)
               if (parent.tagName === 'PRE' || parent.tagName === 'TABLE' ||
                   parent.tagName === 'UL' || parent.tagName === 'OL') {
+                console.log("BRIDGE notes: Found special element", parent.tagName, parent.className);
                 break;
               }
             }
